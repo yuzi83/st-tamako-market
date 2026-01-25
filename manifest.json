@@ -1,0 +1,13 @@
+{
+    "display_name": "Tamako Market 玉子市场",
+    "loading_order": 100,
+    "requires": [],
+    "optional": [],
+    "js": "index.js",
+    "css": "style.css",
+    "author": "yuzi83",
+    "version": "2.0.0",
+    "homePage": "https://github.com/yuzi83/st-tamako-market",
+    "auto_update": true,
+    "description": "可爱风格悬浮窗扩展，用于捕获和管理特定标签内容"
+}
