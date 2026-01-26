@@ -2,7 +2,7 @@
  * 玉子市场 - SillyTavern 悬浮窗扩展
  * Tamako Market Float Window Extension
  * @author yuzi83
- * @version 2.0.0
+ * @version 2.1.2
  * @link https://github.com/yuzi83/st-tamako-market
  */
 
@@ -11,7 +11,7 @@ const extensionName = 'TamakoMarket';
 const defaultSettings = {
     enabled: true,
     windowX: null,
-    windowY: 10,
+    windowY: null,
     windowWidth: 380,
     windowHeight: 450,
     autoCapture: true,
@@ -19,6 +19,8 @@ const defaultSettings = {
     theme: 'tamako',
     maxScanMessages: 50,
     maxStoredPlots: 50,
+    toggleX: null,
+    toggleY: null,
 };
 
 const themes = {
@@ -44,13 +46,42 @@ let extensionEnabled = true;
 let searchQuery = '';
 let currentTheme = 'tamako';
 
+function isMobileDevice() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+        || window.innerWidth <= 768 
+        || ('ontouchstart' in window);
+}
+
 function getDeraMessage(type) {
     const messages = deraMessages[type] || deraMessages.empty;
     return messages[Math.floor(Math.random() * messages.length)];
 }
 
-function getDefaultPosition() {
-    return { x: window.innerWidth - 400, y: 10 };
+function getDefaultWindowPosition() {
+    const isMobile = isMobileDevice();
+    const width = isMobile ? Math.min(340, window.innerWidth - 20) : defaultSettings.windowWidth;
+    const height = isMobile ? Math.min(400, window.innerHeight - 100) : defaultSettings.windowHeight;
+    
+    return {
+        x: Math.max(10, Math.floor((window.innerWidth - width) / 2)),
+        y: Math.max(60, Math.floor((window.innerHeight - height) / 2) - 50),
+        width: width,
+        height: height
+    };
+}
+
+function getDefaultTogglePosition() {
+    const isMobile = isMobileDevice();
+    if (isMobile) {
+        return { 
+            x: Math.max(10, window.innerWidth - 130), 
+            y: Math.max(10, window.innerHeight - 160) 
+        };
+    }
+    return { 
+        x: Math.max(10, window.innerWidth - 330), 
+        y: 10 
+    };
 }
 
 function getSettings() {
@@ -101,24 +132,39 @@ function applyTheme(themeName) {
 
 function resetWindowPosition() {
     const $window = $('#tamako-market-window');
-    const pos = getDefaultPosition();
+    const pos = getDefaultWindowPosition();
+    
+    saveSetting('windowX', null);
+    saveSetting('windowY', null);
+    saveSetting('windowWidth', pos.width);
+    saveSetting('windowHeight', pos.height);
     
     $window.css({
         left: pos.x + 'px',
         top: pos.y + 'px',
-        width: defaultSettings.windowWidth + 'px',
-        height: defaultSettings.windowHeight + 'px'
+        width: pos.width + 'px',
+        height: pos.height + 'px'
     });
     
     $window.removeClass('minimized');
     $window.find('.tamako-btn.minimize i').removeClass('fa-expand').addClass('fa-minus');
     
-    saveSetting('windowX', pos.x);
-    saveSetting('windowY', pos.y);
-    saveSetting('windowWidth', defaultSettings.windowWidth);
-    saveSetting('windowHeight', defaultSettings.windowHeight);
-    
     toggleWindow(true);
+}
+
+function resetTogglePosition() {
+    const $toggle = $('#tamako-market-toggle');
+    const pos = getDefaultTogglePosition();
+    
+    saveSetting('toggleX', null);
+    saveSetting('toggleY', null);
+    
+    $toggle.css({
+        left: pos.x + 'px',
+        top: pos.y + 'px',
+        right: 'auto',
+        bottom: 'auto'
+    });
 }
 
 function extractAMCodes(content) {
@@ -148,6 +194,25 @@ function highlightText(text, query) {
     return text.replace(regex, '<mark>$1</mark>');
 }
 
+function getEventPosition(e) {
+    if (e.touches && e.touches.length > 0) {
+        return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+    if (e.changedTouches && e.changedTouches.length > 0) {
+        return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+    }
+    return { x: e.clientX, y: e.clientY };
+}
+
+function constrainPosition(x, y, width, height) {
+    const maxX = Math.max(0, window.innerWidth - width);
+    const maxY = Math.max(0, window.innerHeight - height);
+    return {
+        x: Math.max(0, Math.min(x, maxX)),
+        y: Math.max(0, Math.min(y, maxY))
+    };
+}
+
 function createWindow() {
     if (document.getElementById('tamako-market-window')) {
         return $('#tamako-market-window');
@@ -158,12 +223,17 @@ function createWindow() {
         themeOptions += `<option value="${key}">${theme.name}</option>`;
     }
 
+    const isMobile = isMobileDevice();
+    const mobileClass = isMobile ? 'tamako-mobile' : '';
+
     const windowHtml = `
-        <div id="tamako-market-window" class="tamako-window theme-tamako">
+        <div id="tamako-market-window" class="tamako-window theme-tamako ${mobileClass}">
             <div class="tamako-header">
-                <div class="tamako-title">
-                    <span>🏪</span>
-                    <span>玉子市场</span>
+                <div class="tamako-drag-handle">
+                    <div class="tamako-title">
+                        <span>🏪</span>
+                        <span>玉子市场</span>
+                    </div>
                 </div>
                 <div class="tamako-controls">
                     <button class="tamako-btn minimize" title="收起摊位"><i class="fa-solid fa-minus"></i></button>
@@ -215,19 +285,40 @@ function createWindow() {
     
     const $window = $('#tamako-market-window');
     const settings = getSettings();
-    const pos = settings.windowX !== null ? { x: settings.windowX, y: settings.windowY } : getDefaultPosition();
+    const defaultPos = getDefaultWindowPosition();
+    
+    const posX = (settings.windowX !== null && settings.windowX !== undefined) ? settings.windowX : defaultPos.x;
+    const posY = (settings.windowY !== null && settings.windowY !== undefined) ? settings.windowY : defaultPos.y;
+    const width = settings.windowWidth || defaultPos.width;
+    const height = settings.windowHeight || defaultPos.height;
     
     $window.css({
-        left: pos.x + 'px',
-        top: pos.y + 'px',
-        width: (settings.windowWidth || defaultSettings.windowWidth) + 'px',
-        height: (settings.windowHeight || defaultSettings.windowHeight) + 'px',
+        left: posX + 'px',
+        top: posY + 'px',
+        width: width + 'px',
+        height: height + 'px',
     });
     
     initDraggable($window);
     initResizable($window);
     bindWindowEvents($window);
     applyTheme(settings.theme || 'tamako');
+    
+    window.addEventListener('resize', () => {
+        const $win = $('#tamako-market-window');
+        if ($win.hasClass('visible')) {
+            const rect = $win[0].getBoundingClientRect();
+            const constrained = constrainPosition(rect.left, rect.top, rect.width, rect.height);
+            $win.css({ left: constrained.x + 'px', top: constrained.y + 'px' });
+        }
+        
+        const $toggle = $('#tamako-market-toggle');
+        if ($toggle.length) {
+            const toggleRect = $toggle[0].getBoundingClientRect();
+            const toggleConstrained = constrainPosition(toggleRect.left, toggleRect.top, toggleRect.width, toggleRect.height);
+            $toggle.css({ left: toggleConstrained.x + 'px', top: toggleConstrained.y + 'px' });
+        }
+    });
     
     return $window;
 }
@@ -237,29 +328,59 @@ function initDraggable($window) {
     let isDragging = false;
     let offsetX, offsetY;
     
-    header.addEventListener('mousedown', (e) => {
-        if (e.target.closest('.tamako-btn')) return;
+    function startDrag(e) {
+        if (e.target.closest('.tamako-btn') || e.target.closest('.tamako-controls')) return;
+        
         isDragging = true;
+        const pos = getEventPosition(e);
         const rect = $window[0].getBoundingClientRect();
-        offsetX = e.clientX - rect.left;
-        offsetY = e.clientY - rect.top;
+        offsetX = pos.x - rect.left;
+        offsetY = pos.y - rect.top;
+        
+        $window.addClass('dragging');
         e.preventDefault();
-    });
+    }
     
-    document.addEventListener('mousemove', (e) => {
+    function moveDrag(e) {
         if (!isDragging) return;
-        const newX = Math.max(0, Math.min(e.clientX - offsetX, window.innerWidth - $window[0].offsetWidth));
-        const newY = Math.max(0, Math.min(e.clientY - offsetY, window.innerHeight - $window[0].offsetHeight));
-        $window.css({ left: newX + 'px', top: newY + 'px' });
-    });
+        
+        const pos = getEventPosition(e);
+        const width = $window[0].offsetWidth;
+        const height = $window[0].offsetHeight;
+        
+        let newX = pos.x - offsetX;
+        let newY = pos.y - offsetY;
+        
+        const constrained = constrainPosition(newX, newY, width, height);
+        
+        $window.css({ 
+            left: constrained.x + 'px', 
+            top: constrained.y + 'px' 
+        });
+        
+        e.preventDefault();
+    }
     
-    document.addEventListener('mouseup', () => {
+    function endDrag() {
         if (isDragging) {
             isDragging = false;
-            saveSetting('windowX', parseInt($window.css('left')));
-            saveSetting('windowY', parseInt($window.css('top')));
+            $window.removeClass('dragging');
+            
+            const currentX = parseInt($window.css('left'));
+            const currentY = parseInt($window.css('top'));
+            saveSetting('windowX', currentX);
+            saveSetting('windowY', currentY);
         }
-    });
+    }
+    
+    header.addEventListener('mousedown', startDrag);
+    document.addEventListener('mousemove', moveDrag);
+    document.addEventListener('mouseup', endDrag);
+    
+    header.addEventListener('touchstart', startDrag, { passive: false });
+    document.addEventListener('touchmove', moveDrag, { passive: false });
+    document.addEventListener('touchend', endDrag);
+    document.addEventListener('touchcancel', endDrag);
 }
 
 function initResizable($window) {
@@ -267,32 +388,67 @@ function initResizable($window) {
     let currentHandle = '';
     let startX, startY, startWidth, startHeight;
     
-    $window.find('.tamako-resize').on('mousedown', function(e) {
+    function startResize(e) {
         isResizing = true;
-        currentHandle = this.className.split('tamako-resize-')[1];
-        startX = e.clientX;
-        startY = e.clientY;
+        const classList = this.className;
+        currentHandle = classList.includes('resize-se') ? 'se' : 
+                       classList.includes('resize-s') ? 's' : 
+                       classList.includes('resize-e') ? 'e' : '';
+        
+        const pos = getEventPosition(e);
+        startX = pos.x;
+        startY = pos.y;
         startWidth = $window[0].offsetWidth;
         startHeight = $window[0].offsetHeight;
+        
+        $window.addClass('resizing');
+        
         e.preventDefault();
         e.stopPropagation();
-    });
+    }
     
-    document.addEventListener('mousemove', (e) => {
+    function moveResize(e) {
         if (!isResizing) return;
-        const deltaX = e.clientX - startX;
-        const deltaY = e.clientY - startY;
-        if (currentHandle.includes('e')) $window.css('width', Math.max(280, startWidth + deltaX) + 'px');
-        if (currentHandle.includes('s')) $window.css('height', Math.max(150, startHeight + deltaY) + 'px');
-    });
+        
+        const pos = getEventPosition(e);
+        const deltaX = pos.x - startX;
+        const deltaY = pos.y - startY;
+        
+        const isMobile = isMobileDevice();
+        const minWidth = isMobile ? 260 : 280;
+        const minHeight = isMobile ? 200 : 150;
+        
+        if (currentHandle.includes('e') || currentHandle === 'se') {
+            const newWidth = Math.max(minWidth, startWidth + deltaX);
+            $window.css('width', newWidth + 'px');
+        }
+        if (currentHandle.includes('s') || currentHandle === 'se') {
+            const newHeight = Math.max(minHeight, startHeight + deltaY);
+            $window.css('height', newHeight + 'px');
+        }
+        
+        e.preventDefault();
+    }
     
-    document.addEventListener('mouseup', () => {
+    function endResize() {
         if (isResizing) {
             isResizing = false;
+            $window.removeClass('resizing');
             saveSetting('windowWidth', $window[0].offsetWidth);
             saveSetting('windowHeight', $window[0].offsetHeight);
         }
+    }
+    
+    $window.find('.tamako-resize').each(function() {
+        this.addEventListener('mousedown', startResize);
+        this.addEventListener('touchstart', startResize, { passive: false });
     });
+    
+    document.addEventListener('mousemove', moveResize);
+    document.addEventListener('mouseup', endResize);
+    document.addEventListener('touchmove', moveResize, { passive: false });
+    document.addEventListener('touchend', endResize);
+    document.addEventListener('touchcancel', endResize);
 }
 
 function bindWindowEvents($window) {
@@ -408,13 +564,113 @@ function deleteSelectedItems() {
 function createToggleButton() {
     if (document.getElementById('tamako-market-toggle')) return;
 
+    const isMobile = isMobileDevice();
+    const settings = getSettings();
+    
     const btn = document.createElement('div');
     btn.id = 'tamako-market-toggle';
-    btn.className = 'tamako-toggle theme-tamako';
-    btn.innerHTML = '<span>🏪</span><span>玉子市场</span>';
-    btn.title = '打开玉子市场';
-    btn.addEventListener('click', () => toggleWindow());
+    btn.className = `tamako-toggle theme-tamako ${isMobile ? 'tamako-toggle-mobile' : ''}`;
+    btn.innerHTML = '<span class="tamako-toggle-icon">🏪</span><span class="tamako-toggle-text">玉子市场</span>';
+    btn.title = '拖拽移动 / 点击打开玉子市场';
+    
     document.body.appendChild(btn);
+    
+    const defaultPos = getDefaultTogglePosition();
+    const posX = (settings.toggleX !== null && settings.toggleX !== undefined) ? settings.toggleX : defaultPos.x;
+    const posY = (settings.toggleY !== null && settings.toggleY !== undefined) ? settings.toggleY : defaultPos.y;
+    
+    const $btn = $(btn);
+    $btn.css({
+        left: posX + 'px',
+        top: posY + 'px',
+        right: 'auto',
+        bottom: 'auto'
+    });
+    
+    initToggleDraggable($btn);
+}
+
+function initToggleDraggable($toggle) {
+    let isDragging = false;
+    let hasMoved = false;
+    let offsetX, offsetY;
+    let startX, startY;
+    let startTime;
+    
+    const DRAG_THRESHOLD = 5;
+    
+    function startDrag(e) {
+        startTime = Date.now();
+        hasMoved = false;
+        
+        const pos = getEventPosition(e);
+        const rect = $toggle[0].getBoundingClientRect();
+        
+        offsetX = pos.x - rect.left;
+        offsetY = pos.y - rect.top;
+        startX = pos.x;
+        startY = pos.y;
+        
+        $toggle.addClass('dragging');
+        
+        e.preventDefault();
+    }
+    
+    function moveDrag(e) {
+        if (!$toggle.hasClass('dragging')) return;
+        
+        const pos = getEventPosition(e);
+        
+        const deltaX = Math.abs(pos.x - startX);
+        const deltaY = Math.abs(pos.y - startY);
+        
+        if (deltaX > DRAG_THRESHOLD || deltaY > DRAG_THRESHOLD) {
+            isDragging = true;
+            hasMoved = true;
+        }
+        
+        if (!isDragging) return;
+        
+        const width = $toggle[0].offsetWidth;
+        const height = $toggle[0].offsetHeight;
+        
+        let newX = pos.x - offsetX;
+        let newY = pos.y - offsetY;
+        
+        const constrained = constrainPosition(newX, newY, width, height);
+        
+        $toggle.css({ 
+            left: constrained.x + 'px', 
+            top: constrained.y + 'px' 
+        });
+        
+        e.preventDefault();
+    }
+    
+    function endDrag() {
+        $toggle.removeClass('dragging');
+        isDragging = false;
+        
+        if (hasMoved) {
+            saveSetting('toggleX', parseInt($toggle.css('left')));
+            saveSetting('toggleY', parseInt($toggle.css('top')));
+        }
+        
+        if (!hasMoved && Date.now() - startTime < 300) {
+            toggleWindow();
+        }
+        
+        hasMoved = false;
+    }
+    
+    $toggle[0].addEventListener('mousedown', startDrag);
+    document.addEventListener('mousemove', moveDrag);
+    document.addEventListener('mouseup', endDrag);
+    
+    $toggle[0].addEventListener('touchstart', startDrag, { passive: false });
+    document.addEventListener('touchmove', moveDrag, { passive: false });
+    document.addEventListener('touchend', endDrag);
+    document.addEventListener('touchcancel', endDrag);
 }
 
 function toggleWindow(show) {
@@ -422,6 +678,15 @@ function toggleWindow(show) {
     const $button = $('#tamako-market-toggle');
     
     show = show ?? !$window.hasClass('visible');
+    
+    if (show) {
+        const rect = $window[0].getBoundingClientRect();
+        const constrained = constrainPosition(rect.left, rect.top, rect.width, rect.height);
+        
+        if (rect.left !== constrained.x || rect.top !== constrained.y) {
+            $window.css({ left: constrained.x + 'px', top: constrained.y + 'px' });
+        }
+    }
     
     $window.toggleClass('visible', show);
     $button.toggleClass('active', show);
@@ -728,10 +993,12 @@ function createSettingsPanel() {
                         
                         <div class="tamako-settings-buttons">
                             <button id="tamako-open-btn" class="menu_button">打开窗口</button>
-                            <button id="tamako-reset-btn" class="menu_button tamako-reset">重置位置</button>
+                            <button id="tamako-reset-btn" class="menu_button tamako-reset">重置窗口</button>
+                            <button id="tamako-reset-toggle-btn" class="menu_button">重置按钮</button>
                         </div>
                         <div class="tamako-settings-info">
                             已捕获: <span id="tamako-count">0</span> 条记录
+                            <br><small style="color: #888;">💡 提示：可以拖拽"玉子市场"按钮移动位置</small>
                         </div>
                     </div>
                 </div>
@@ -793,7 +1060,9 @@ function createSettingsPanel() {
         }
         toggleWindow(true);
     });
+    
     $('#tamako-reset-btn').on('click', () => resetWindowPosition());
+    $('#tamako-reset-toggle-btn').on('click', () => resetTogglePosition());
     
     if (!extensionEnabled) {
         $('#tamako-market-toggle').hide();
@@ -882,7 +1151,7 @@ function initEventListeners() {
             setTimeout(createSettingsPanel, 2000);
             initEventListeners();
             setTimeout(() => scanAllMessages(), 1000);
-            console.log('[玉子市场] 开店啦！🏪✨');
+            console.log('[玉子市场] 开店啦！🏪✨ v2.1.2');
         } catch (e) {
             console.error('[玉子市场] 初始化错误:', e);
         }
