@@ -786,7 +786,15 @@ function extractPlotContent(message) {
     const tags = getSettings().captureTags || [];
     if (tags.length === 0) return null;
     
-    const keywords = ['以上是用户的本轮输入', '以上是用户的', '以下是用户的本轮输入'];
+    // 修复：添加更多关键词变体
+    const keywords = [
+        '以上是用户的本轮输入',
+        '以上是用户本轮输入',
+        '以上是用户的',
+        '以下是用户的本轮输入',
+        '以下是用户本轮输入',
+        '以下是用户的'
+    ];
     if (!keywords.some(k => message.includes(k))) return null;
     
     const parts = [];
@@ -796,6 +804,7 @@ function extractPlotContent(message) {
     
     return parts.length > 0 ? parts.join('\n\n') : null;
 }
+
 
 function handleUserMessage(messageIndex) {
     if (!extensionEnabled) return false;
@@ -1163,3 +1172,4 @@ function initEventListeners() {
         setTimeout(onReady, 100);
     }
 })();
+
