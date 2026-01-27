@@ -30,7 +30,7 @@ SillyTavern 可爱风格悬浮窗扩展，用于捕获和管理特定标签内�
 ### 方法二：手动安装
 
 1. [下载最新版本](https://github.com/yuzi83/st-tamako-market/releases)
-2. 解压到 `SillyTavern/data/<user>/extensions/third-party/st-tamako-market/`
+2. 解压到 SillyTavern-1.15.0\public\scripts\extensions\third-party
 3. 重启 SillyTavern
 
 ## 🎯 使用方法
@@ -185,3 +185,4 @@ v2.4.0 新增的强大功能，支持自定义 HTML 模板来美化"今日特选
 <p align="center">
 <i>德拉：欢迎光临玉子市场！🐔✨</i>
 </p>
+
