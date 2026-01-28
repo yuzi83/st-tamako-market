@@ -6,7 +6,7 @@
     "js": "index.js",
     "css": "style.css",
     "author": "yuzi83",
-    "version": "2.4.2",
+    "version": "2.4.4",
     "homePage": "https://github.com/yuzi83/st-tamako-market",
     "auto_update": true,
     "description": "可爱风格悬浮窗扩展，用于捕获和管理特定标签内容，支持手机端拖拽和自定义美化器"
