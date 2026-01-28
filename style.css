@@ -1,13 +1,14 @@
 /* style.css */
 /**
  * 玉子市场 - 样式表
- * @version 2.4.4
+ * @version 2.4.7
  * CSS变量驱动主题系统
- * 修复：美化器加载状态样式、按钮初始化主题颜色透明问题
+ * 修复：排除反引号包裹的标签名，避免错误匹配
  */
 
 /* ===== 主题变量定义 ===== */
 .tamako-window {
+    /* 主题变量 */
     --tamako-primary: #FFB6C1;
     --tamako-secondary: #DDA0DD;
     --tamako-bg: linear-gradient(135deg, #FFF5F7 0%, #FFFFFF 50%, #F8F0FF 100%);
@@ -16,6 +17,8 @@
     --tamako-text: #333333;
     --tamako-text-muted: #888888;
     --tamako-border: rgba(0, 0, 0, 0.1);
+    
+    /* 兼容旧代码 */
     --theme-primary: var(--tamako-primary);
     --theme-secondary: var(--tamako-secondary);
 }
@@ -77,6 +80,7 @@
 .tamako-window.dragging { opacity: 0.9; box-shadow: 0 12px 48px rgba(255, 182, 193, 0.6); }
 .tamako-window.resizing { opacity: 0.95; }
 
+/* 缩放时全局遮罩 */
 body.tamako-resizing { cursor: nwse-resize !important; }
 body.tamako-resizing * { cursor: nwse-resize !important; pointer-events: none !important; }
 body.tamako-resizing .tamako-window,
@@ -284,7 +288,7 @@ body.tamako-resizing .tamako-resize { pointer-events: auto !important; }
     font-size: 13px;
 }
 
-/* iframe 样式 */
+/* iframe 样式 - 初始隐藏 */
 .tamako-beautifier-frame {
     position: absolute;
     top: 0;
@@ -581,6 +585,7 @@ body.tamako-resizing .tamako-resize { pointer-events: auto !important; }
 
 /* ===== 设置面板 ===== */
 
+/* 模板信息栏 */
 .tamako-template-item {
     display: flex;
     align-items: center;
@@ -629,6 +634,7 @@ body.tamako-resizing .tamako-resize { pointer-events: auto !important; }
     color: #ff6b6b;
 }
 
+/* 设置区块间距 */
 .tamako-settings-section {
     margin: 10px 0;
     padding: 10px;
@@ -644,6 +650,7 @@ body.tamako-resizing .tamako-resize { pointer-events: auto !important; }
     opacity: 0.8;
 }
 
+/* 文件上传区域 */
 .tamako-file-drop {
     border: 1px dashed var(--SmartThemeBorderColor);
     border-radius: 4px;
@@ -680,6 +687,7 @@ body.tamako-resizing .tamako-resize { pointer-events: auto !important; }
 .tamako-file-status.success { color: #10b981; opacity: 1; }
 .tamako-file-status.error { color: #ef4444; opacity: 1; }
 
+/* 数字输入行 */
 .tamako-number-row {
     display: flex;
     align-items: center;
@@ -692,6 +700,7 @@ body.tamako-resizing .tamako-resize { pointer-events: auto !important; }
 .tamako-number-row input[type="number"] { width: 60px; text-align: center; }
 .tamako-number-row .hint { font-size: 11px; opacity: 0.6; min-width: 20px; }
 
+/* 按钮组 */
 .tamako-btn-group {
     display: flex;
     flex-wrap: wrap;
@@ -701,8 +710,10 @@ body.tamako-resizing .tamako-resize { pointer-events: auto !important; }
 
 .tamako-btn-group .menu_button { flex: 1; min-width: 70px; }
 
+/* 统计信息 */
 .tamako-stats { margin-top: 8px; font-size: 11px; opacity: 0.6; }
 
+/* 装饰 */
 .tamako-window::before {
     content: '';
     position: absolute;
@@ -714,6 +725,7 @@ body.tamako-resizing .tamako-resize { pointer-events: auto !important; }
     border-radius: 0 0 3px 3px;
 }
 
+/* 响应式 */
 @media screen and (max-width: 480px) {
     .tamako-window { width: calc(100vw - 20px) !important; left: 10px !important; }
     .tamako-toggle-text { display: none; }
