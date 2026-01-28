@@ -1,8 +1,9 @@
 /* index.js */
 /**
  * 玉子市场 - SillyTavern 悬浮窗扩展
- * @version 2.4.2
+ * @version 2.4.4
  * 功能：捕获XML标签内容、自定义美化器、消息删除检测、移动端适配
+ * 修复：美化器渲染时机问题、按钮初始化主题颜色透明问题
  */
 
 const extensionName = 'TamakoMarket';
@@ -52,6 +53,7 @@ const deraMessages = {
     delete: ['德拉帮你打包好了~', '清理完毕！店铺更整洁了~', '德拉：这些就交给我处理吧！'],
     noResult: ['德拉找不到这个呢...', '没有匹配的商品哦~', '德拉翻遍了也没找到~'],
     tooMany: ['商品太多了，德拉只拿了一部分~', '库存爆满！德拉尽力了~'],
+    loading: ['德拉正在准备...', '稍等一下哦~', '德拉在努力加载中...'],
 };
 
 let capturedPlots = [];
@@ -72,6 +74,7 @@ let resizeState = {
 };
 
 let validateDebounceTimer = null;
+let beautifierLoadTimeout = null;
 
 function isMobileDevice() {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768 || ('ontouchstart' in window);
@@ -329,9 +332,10 @@ function parseBeautifierTemplate(input) {
     if (result) { 
         cachedTemplateSource = input; 
         cachedTemplate = { html: result, regexInfo };
+        return cachedTemplate;
     }
     
-    return cachedTemplate;
+    return null;
 }
 
 function validateTemplate(templateData) {
@@ -551,10 +555,33 @@ console.log('[玉子市场] 数据注入完成');
 `;
     
     let modifiedHtml = html;
-    if (html.includes('</head>')) {
+    
+    const hasDoctype = html.includes('<!DOCTYPE') || html.includes('<!doctype');
+    const hasHtml = html.includes('<html') || html.includes('<HTML');
+    const hasHead = html.includes('<head') || html.includes('<HEAD');
+    const hasBody = html.includes('<body') || html.includes('<BODY');
+    
+    if (!hasDoctype && !hasHtml) {
+        modifiedHtml = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+${injectionScript}
+<style>
+body { margin: 0; padding: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+</style>
+</head>
+<body>
+${html}
+</body>
+</html>`;
+    } else if (hasHead && html.includes('</head>')) {
         modifiedHtml = html.replace('</head>', injectionScript + '</head>');
-    } else if (html.includes('<body')) {
-        modifiedHtml = html.replace('<body', injectionScript + '<body');
+    } else if (hasBody) {
+        modifiedHtml = html.replace(/<body/i, injectionScript + '<body');
+    } else if (hasHtml) {
+        modifiedHtml = html.replace(/<html[^>]*>/i, '$&<head>' + injectionScript + '</head>');
     } else {
         modifiedHtml = injectionScript + html;
     }
@@ -573,15 +600,61 @@ function renderWithBeautifier($container, rawMessage, templateData) {
         const fullChatData = extractAllChatData();
         html = injectDataIntoTemplate(html, rawMessage, fullChatData);
         
-        let iframe = $container.find('.tamako-beautifier-frame')[0];
+        $container.css('position', 'relative');
         
-        if (!iframe) {
-            $container.html(`<iframe class="tamako-beautifier-frame" frameborder="0" style="width:100%;height:100%;border:none;"></iframe>`);
+        let iframe = $container.find('.tamako-beautifier-frame')[0];
+        let $loading = $container.find('.tamako-beautifier-loading');
+        
+        if (beautifierLoadTimeout) {
+            clearTimeout(beautifierLoadTimeout);
+            beautifierLoadTimeout = null;
+        }
+        
+        if (!iframe || !$loading.length) {
+            $container.empty();
+            
+            $container.append(`
+                <div class="tamako-beautifier-loading">
+                    <span class="icon">🐔</span>
+                    <span class="message">${getDeraMessage('loading')}</span>
+                </div>
+            `);
+            
+            $container.append(`<iframe class="tamako-beautifier-frame" frameborder="0" sandbox="allow-scripts allow-same-origin"></iframe>`);
+            
             iframe = $container.find('.tamako-beautifier-frame')[0];
+            $loading = $container.find('.tamako-beautifier-loading');
         }
         
         if (!iframe) return false;
+        
+        const $iframe = $(iframe);
+        $iframe.css('opacity', '0');
+        $loading.show();
+        
+        iframe.onload = null;
+        
+        iframe.onload = function() {
+            if (beautifierLoadTimeout) {
+                clearTimeout(beautifierLoadTimeout);
+                beautifierLoadTimeout = null;
+            }
+            setTimeout(() => {
+                $loading.hide();
+                $iframe.css('opacity', '1');
+            }, 50);
+        };
+        
+        beautifierLoadTimeout = setTimeout(() => {
+            if ($loading.is(':visible')) {
+                console.warn('[玉子市场] iframe 加载超时，强制显示');
+                $loading.hide();
+                $iframe.css('opacity', '1');
+            }
+        }, 3000);
+        
         iframe.srcdoc = html;
+        
         return true;
     } catch (e) {
         console.error('[玉子市场] 美化器渲染失败:', e);
@@ -600,9 +673,11 @@ function createWindow() {
         `<option value="${key}">${theme.name}</option>`
     ).join('');
     const mobileClass = isMobileDevice() ? 'tamako-mobile' : '';
+    const settings = getSettings();
+    const savedTheme = settings.theme || 'tamako';
 
     const windowHtml = `
-        <div id="tamako-market-window" class="tamako-window theme-tamako ${mobileClass}">
+        <div id="tamako-market-window" class="tamako-window theme-${savedTheme} ${mobileClass}">
             <div class="tamako-header">
                 <div class="tamako-drag-handle">
                     <div class="tamako-title">
@@ -654,20 +729,24 @@ function createWindow() {
     document.body.insertAdjacentHTML('beforeend', windowHtml);
     
     const $window = $('#tamako-market-window');
-    const settings = getSettings();
     const defaultPos = getDefaultWindowPosition();
+    const theme = themes[savedTheme] || themes.tamako;
     
     $window.css({
         left: (settings.windowX ?? defaultPos.x) + 'px',
         top: (settings.windowY ?? defaultPos.y) + 'px',
         width: (settings.windowWidth || defaultPos.width) + 'px',
         height: (settings.windowHeight || defaultPos.height) + 'px',
+        '--theme-primary': theme.primary,
+        '--theme-secondary': theme.secondary
     });
+    
+    $('#tamako-theme-selector').val(savedTheme);
+    currentTheme = savedTheme;
     
     initDraggable($window);
     initResizable($window);
     bindWindowEvents($window);
-    applyTheme(settings.theme || 'tamako');
     
     return $window;
 }
@@ -889,17 +968,27 @@ function createToggleButton() {
 
     const settings = getSettings();
     const isMobile = isMobileDevice();
+    const savedTheme = settings.theme || 'tamako';
+    const theme = themes[savedTheme] || themes.tamako;
     
     const btn = document.createElement('div');
     btn.id = 'tamako-market-toggle';
-    btn.className = `tamako-toggle theme-tamako ${isMobile ? 'tamako-toggle-mobile' : ''}`;
+    btn.className = `tamako-toggle theme-${savedTheme} ${isMobile ? 'tamako-toggle-mobile' : ''}`;
     btn.innerHTML = `<span class="tamako-toggle-icon">${ICONS.store}</span><span class="tamako-toggle-text">玉子市场</span>`;
     btn.title = '拖拽移动 / 点击打开玉子市场';
     document.body.appendChild(btn);
     
     const defaultPos = getDefaultTogglePosition();
     const $btn = $(btn);
-    $btn.css({ left: (settings.toggleX ?? defaultPos.x) + 'px', top: (settings.toggleY ?? defaultPos.y) + 'px', right: 'auto', bottom: 'auto' });
+    
+    $btn.css({ 
+        left: (settings.toggleX ?? defaultPos.x) + 'px', 
+        top: (settings.toggleY ?? defaultPos.y) + 'px', 
+        right: 'auto', 
+        bottom: 'auto',
+        '--theme-primary': theme.primary,
+        '--theme-secondary': theme.secondary
+    });
     
     initToggleDraggable($btn);
 }
@@ -979,14 +1068,27 @@ function updateCurrentContent(content, rawMessage) {
     const settings = getSettings();
     
     if (!content?.trim()) {
-        $content.html(`<div class="tamako-empty"><span class="icon">🐔</span><span class="message">${getDeraMessage('empty')}</span></div>`);
+        $content.css('position', '').empty().html(`
+            <div class="tamako-empty">
+                <span class="icon">🐔</span>
+                <span class="message">${getDeraMessage('empty')}</span>
+            </div>
+        `);
         return;
     }
     
     if (settings.beautifier?.enabled && settings.beautifier?.template) {
         const templateData = parseBeautifierTemplate(settings.beautifier.template);
-        if (templateData && rawMessage && renderWithBeautifier($content, rawMessage, templateData)) return;
+        if (templateData && rawMessage) {
+            if (renderWithBeautifier($content, rawMessage, templateData)) {
+                return;
+            }
+            console.warn('[玉子市场] 美化器渲染失败，使用普通模式');
+        }
     }
+    
+    $content.css('position', '');
+    $content.find('.tamako-beautifier-frame, .tamako-beautifier-loading').remove();
     
     let formatted = content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     if (searchQuery) formatted = highlightText(formatted, searchQuery);
@@ -1565,7 +1667,7 @@ function initEventListeners() {
             setTimeout(createSettingsPanel, 2000);
             initEventListeners();
             setTimeout(() => scanAllMessages(), 1000);
-            console.log('[玉子市场] 开店啦！v2.4.2');
+            console.log('[玉子市场] 开店啦！v2.4.4');
         } catch (e) { console.error('[玉子市场] 初始化错误:', e); }
     };
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', onReady);
