@@ -81,19 +81,19 @@ v2.4.0 新增的强大功能，支持自定义 HTML 模板来美化"今日特选
 
 - `.html` - 标准 HTML 文件
 - `.htm` - HTML 文件
-- `.json` - 包含 `replaceString` 字段的 JSON 文件
+- `.json` - 包含 `replaceString` 字段的 JSON 文件（兼容正则脚本格式）
 - `.txt` - 纯文本 HTML 内容
 
 ### 模板开发
 
-模板内可使用以下全局变量和函数：
+模板使用 `$1` 占位符接收原始用户消息。模板内可使用以下全局变量和函数：
 
-- `window.TAMAKO_CHAT_DATA` - 完整聊天记录数组
-- `window.TAMAKO_TAGS` - 预提取的标签内容
-- `window.TAMAKO_RAW_MESSAGE` - 原始用户消息
+- `window.getSTChat()` - 获取聊天数据（推荐）
+- `window.getContext()` - 获取 SillyTavern 上下文
 - `window.extractTagFromChat(tagName)` - 从聊天中提取指定标签
 - `window.extractFileFromContent()` - 提取 content/file 内容
-- `window.getSTChat()` - 获取聊天数据
+
+**兼容性说明**：美化器完全兼容现有的正则脚本模板（如回响），模板自带的数据获取函数会被优先使用。
 
 ## 🎨 主题预览
 
@@ -129,8 +129,28 @@ v2.4.0 新增的强大功能，支持自定义 HTML 模板来美化"今日特选
 - SillyTavern 1.10.0 及以上版本
 - 支持所有现代浏览器（Chrome、Firefox、Edge 等）
 - 📱 支持手机端（Android / iOS）
+- 🎭 兼容现有正则脚本模板（如回响 V6）
 
 ## 📝 更新日志
+
+### v2.4.7
+
+- 🐛 修复反引号包裹的标签名被错误匹配的问题
+- 🐛 修复说明文字中的 `` `<prologue>` `` 等被误认为真实标签
+- ⚡ 使用负向后行断言优化标签提取正则表达式
+
+### v2.4.6
+
+- 🐛 修复美化器与回响等正则脚本模板的兼容性问题
+- 🐛 修复模板自带函数被错误覆盖的问题
+- ⚡ 优化数据传递机制，使用 window.name 替代 Base64 编码
+- 🔧 美化器现在完全尊重模板自带的数据获取逻辑
+
+### v2.4.5
+
+- 🐛 修复美化器注入脚本被特殊字符破坏导致代码泄露的问题
+- ⚡ 使用 Base64 编码传输数据避免特殊字符问题
+- ⚡ 使用 Blob URL 替代 srcdoc 提高稳定性
 
 ### v2.4.4
 
