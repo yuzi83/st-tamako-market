@@ -1,9 +1,9 @@
 /* index.js */
 /**
  * 玉子市场 - SillyTavern 悬浮窗扩展
- * @version 2.4.4
+ * @version 2.4.7
  * 功能：捕获XML标签内容、自定义美化器、消息删除检测、移动端适配
- * 修复：美化器渲染时机问题、按钮初始化主题颜色透明问题
+ * 修复：排除反引号包裹的标签名，避免错误匹配
  */
 
 const extensionName = 'TamakoMarket';
@@ -192,8 +192,6 @@ function constrainPosition(x, y, width, height) {
     };
 }
 
-// ========== 美化器 iframe 控制 ==========
-
 function hideBeautifierFrame($window) {
     const iframe = $window.find('.tamako-beautifier-frame')[0];
     if (iframe) iframe.style.visibility = 'hidden';
@@ -204,15 +202,10 @@ function showBeautifierFrame($window) {
     if (iframe) iframe.style.visibility = 'visible';
 }
 
-// ========== 消息验证 ==========
-
 function validateCapturedPlots() {
     if (!extensionEnabled) return;
-    
     if (validateDebounceTimer) clearTimeout(validateDebounceTimer);
-    validateDebounceTimer = setTimeout(() => {
-        doValidateCapturedPlots();
-    }, 300);
+    validateDebounceTimer = setTimeout(() => doValidateCapturedPlots(), 300);
 }
 
 function doValidateCapturedPlots() {
@@ -225,24 +218,17 @@ function doValidateCapturedPlots() {
         
         capturedPlots = capturedPlots.filter(plot => {
             if (plot.messageIndex >= chatLength) return false;
-            
             const msg = context.chat[plot.messageIndex];
-            if (!msg || !msg.is_user) return false;
-            if (!msg.mes) return false;
-            
+            if (!msg || !msg.is_user || !msg.mes) return false;
             const tags = getSettings().captureTags || [];
             for (const tag of tags) {
-                if (plot.content.includes(`<${tag}`) && msg.mes.includes(`<${tag}`)) {
-                    return true;
-                }
+                if (plot.content.includes(`<${tag}`) && msg.mes.includes(`<${tag}`)) return true;
             }
-            
             return false;
         });
         
         if (capturedPlots.length !== originalLength) {
             capturedPlots = [];
-            
             const settings = getSettings();
             const maxScan = settings.maxScanMessages || 50;
             const maxStore = settings.maxStoredPlots || 50;
@@ -251,10 +237,8 @@ function doValidateCapturedPlots() {
             for (let i = chatLength - 1; i >= 0 && scannedCount < maxScan; i--) {
                 if (!context.chat[i]?.is_user) continue;
                 scannedCount++;
-                
                 const extracted = extractPlotContent(context.chat[i].mes);
                 if (!extracted) continue;
-                
                 capturedPlots.push({
                     content: extracted.content,
                     rawMessage: extracted.rawMessage,
@@ -264,9 +248,7 @@ function doValidateCapturedPlots() {
             }
             
             capturedPlots.sort((a, b) => a.messageIndex - b.messageIndex);
-            if (capturedPlots.length > maxStore) {
-                capturedPlots = capturedPlots.slice(-maxStore);
-            }
+            if (capturedPlots.length > maxStore) capturedPlots = capturedPlots.slice(-maxStore);
             
             if (capturedPlots.length > 0) {
                 const latest = capturedPlots[capturedPlots.length - 1];
@@ -274,15 +256,12 @@ function doValidateCapturedPlots() {
             } else {
                 updateCurrentContent('', '');
             }
-            
             updateHistoryList();
         }
     } catch (e) {
         console.error('[玉子市场] 验证捕获记录失败:', e);
     }
 }
-
-// ========== 美化器 ==========
 
 function parseBeautifierTemplate(input) {
     if (!input?.trim()) return null;
@@ -354,7 +333,7 @@ function extractAllChatData() {
         const context = SillyTavern.getContext();
         if (!context?.chat) return data;
         
-        data.chat = context.chat.map((msg, idx) => {
+        data.chat = context.chat.map((msg) => {
             if (!msg) return null;
             return {
                 mes: msg.mes || '',
@@ -373,9 +352,7 @@ function extractAllChatData() {
         for (const tag of tagNames) {
             data.tags[tag] = extractTagFromChatHistory(context.chat, tag);
         }
-        
         data.tags.contentFile = extractFileFromContentTag(context.chat);
-        
     } catch (e) {
         console.error('[玉子市场] 提取聊天数据失败:', e);
     }
@@ -385,205 +362,123 @@ function extractAllChatData() {
 
 function extractTagFromChatHistory(chat, tagName) {
     if (!chat) return '';
-    
-    const regex = new RegExp(`<${tagName}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tagName}>`, 'i');
+    // 使用负向后行断言，排除反引号包裹的标签
+    const regex = new RegExp(`(?<!\`)<${tagName}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tagName}>(?!\`)`, 'i');
     
     for (let i = chat.length - 1; i >= 0; i--) {
         const msg = chat[i];
         if (!msg) continue;
-        
         const sources = [msg.extra?.qrf_plot, msg.mes, msg.qrf_plot];
-        
         if (msg.swipes && Array.isArray(msg.swipes)) {
             for (const swipe of msg.swipes) {
                 if (typeof swipe === 'string') sources.push(swipe);
                 else if (swipe?.extra?.qrf_plot) sources.push(swipe.extra.qrf_plot);
             }
         }
-        
         for (const src of sources) {
             if (!src) continue;
             const match = src.match(regex);
             if (match && match[1]) return match[1].trim();
         }
     }
-    
     return '';
 }
 
 function extractFileFromContentTag(chat) {
     if (!chat) return '';
-    
     for (let i = chat.length - 1; i >= 0; i--) {
         const msg = chat[i];
         if (!msg) continue;
-        
         const sources = [msg.extra?.qrf_plot, msg.mes, msg.qrf_plot];
-        
         if (msg.swipes && Array.isArray(msg.swipes)) {
             for (const swipe of msg.swipes) {
                 if (typeof swipe === 'string') sources.push(swipe);
                 else if (swipe?.extra?.qrf_plot) sources.push(swipe.extra.qrf_plot);
             }
         }
-        
         for (const src of sources) {
             if (!src) continue;
-            
-            const contentPattern = /<content(?:\s[^>]*)?>([\\s\\S]*?)<\/content>/gi;
+            // 使用负向后行断言，排除反引号包裹的标签
+            const contentPattern = /(?<!`)<content(?:\s[^>]*)?>([\\s\\S]*?)<\/content>(?!`)/gi;
             let contentMatch;
             while ((contentMatch = contentPattern.exec(src)) !== null) {
                 const contentInner = contentMatch[1];
-                const fileMatch = contentInner.match(/<file(?:\s[^>]*)?>([\\s\\S]*?)<\/file>/i);
-                if (fileMatch && fileMatch[1]) {
-                    return fileMatch[1].trim();
-                }
+                const fileMatch = contentInner.match(/(?<!`)<file(?:\s[^>]*)?>([\\s\\S]*?)<\/file>(?!`)/i);
+                if (fileMatch && fileMatch[1]) return fileMatch[1].trim();
             }
         }
     }
-    
     return '';
 }
 
 function injectDataIntoTemplate(html, rawMessage, fullChatData) {
-    const escapeForJS = (str) => {
-        if (!str) return '';
-        return str
-            .replace(/\\/g, '\\\\')
-            .replace(/'/g, "\\'")
-            .replace(/"/g, '\\"')
-            .replace(/\n/g, '\\n')
-            .replace(/\r/g, '\\r')
-            .replace(/\t/g, '\\t')
-            .replace(/</g, '\\x3c')
-            .replace(/>/g, '\\x3e');
-    };
+    // 不再注入数据覆盖模板自带的函数
+    // 模板（如回响）有自己的 getSTChat/extractTagFromChat 函数
+    // 我们只需要确保 $1 占位符被正确替换
     
-    let chatJSON = '[]';
-    try {
-        chatJSON = JSON.stringify(fullChatData.chat || []);
-        chatJSON = chatJSON.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-    } catch (e) {
-        console.error('[玉子市场] 序列化聊天数据失败:', e);
-    }
+    // 如果模板没有自己的数据获取逻辑，我们提供一个后备方案
+    // 通过 postMessage 让 iframe 可以请求数据
     
+    const chatDataJSON = JSON.stringify(fullChatData.chat || []);
+    const tagsDataJSON = JSON.stringify(fullChatData.tags || {});
+    
+    // 使用更安全的方式注入数据：通过 window.name 传递
+    // window.name 可以安全存储大量数据且不会被 HTML 解析破坏
     const injectionScript = `
 <script>
-window.TAMAKO_CHAT_DATA = JSON.parse('${chatJSON}');
-window.TAMAKO_TAGS = {
-    stage: "${escapeForJS(fullChatData.tags?.stage || '')}",
-    recall: "${escapeForJS(fullChatData.tags?.recall || '')}",
-    prologue: "${escapeForJS(fullChatData.tags?.prologue || '')}",
-    plot: "${escapeForJS(fullChatData.tags?.plot || '')}",
-    cast: "${escapeForJS(fullChatData.tags?.cast || '')}",
-    scene_direction: "${escapeForJS(fullChatData.tags?.scene_direction || '')}",
-    content: "${escapeForJS(fullChatData.tags?.content || '')}",
-    file: "${escapeForJS(fullChatData.tags?.file || '')}",
-    contentFile: "${escapeForJS(fullChatData.tags?.contentFile || '')}"
-};
-window.TAMAKO_RAW_MESSAGE = "${escapeForJS(rawMessage)}";
-
-window.getContext = function() { return { chat: window.TAMAKO_CHAT_DATA }; };
-window.SillyTavern = { chat: window.TAMAKO_CHAT_DATA, getContext: window.getContext };
-window.getSTChat = function() { return window.TAMAKO_CHAT_DATA; };
-
-window.extractTagFromChat = function(tagName) {
-    var key = tagName.toLowerCase();
-    if (window.TAMAKO_TAGS[key] !== undefined) return window.TAMAKO_TAGS[key];
-    return window._extractTagFromChatFallback(tagName);
-};
-
-window._extractTagFromChatFallback = function(tagName) {
+(function() {
+    // 尝试从 window.name 读取数据（如果有的话）
     try {
-        var chat = window.TAMAKO_CHAT_DATA;
-        if (!chat || !chat.length) return "";
-        var regex = new RegExp("<" + tagName + "(?:\\\\s[^>]*)?>([\\\\s\\\\S]*?)<\\\\/" + tagName + ">", "i");
-        for (var i = chat.length - 1; i >= 0; i--) {
-            var msg = chat[i];
-            if (!msg) continue;
-            var sources = [msg.extra && msg.extra.qrf_plot, msg.mes, msg.qrf_plot];
-            if (msg.swipes) {
-                for (var s = 0; s < msg.swipes.length; s++) {
-                    var swipe = msg.swipes[s];
-                    if (typeof swipe === "string") sources.push(swipe);
-                    else if (swipe && swipe.extra && swipe.extra.qrf_plot) sources.push(swipe.extra.qrf_plot);
-                }
-            }
-            for (var j = 0; j < sources.length; j++) {
-                if (!sources[j]) continue;
-                var match = sources[j].match(regex);
-                if (match && match[1]) return match[1].trim();
-            }
+        if (window.name && window.name.startsWith('TAMAKO_DATA:')) {
+            var dataStr = window.name.substring(12);
+            var parsed = JSON.parse(dataStr);
+            window.TAMAKO_INJECTED_CHAT = parsed.chat || [];
+            window.TAMAKO_INJECTED_TAGS = parsed.tags || {};
+            window.TAMAKO_INJECTED_RAW = parsed.raw || '';
         }
-    } catch (e) {}
-    return "";
-};
-
-window.extractFileFromContent = function() {
-    if (window.TAMAKO_TAGS.contentFile) return window.TAMAKO_TAGS.contentFile;
-    try {
-        var chat = window.TAMAKO_CHAT_DATA;
-        if (!chat || !chat.length) return "";
-        for (var i = chat.length - 1; i >= 0; i--) {
-            var msg = chat[i];
-            if (!msg) continue;
-            var sources = [msg.extra && msg.extra.qrf_plot, msg.mes, msg.qrf_plot];
-            if (msg.swipes) {
-                for (var s = 0; s < msg.swipes.length; s++) {
-                    var swipe = msg.swipes[s];
-                    if (typeof swipe === "string") sources.push(swipe);
-                    else if (swipe && swipe.extra && swipe.extra.qrf_plot) sources.push(swipe.extra.qrf_plot);
-                }
-            }
-            for (var j = 0; j < sources.length; j++) {
-                if (!sources[j]) continue;
-                var contentMatches = sources[j].match(/<content(?:\\s[^>]*)?>([\\s\\S]*?)<\\/content>/gi);
-                if (contentMatches) {
-                    for (var k = 0; k < contentMatches.length; k++) {
-                        var fileMatch = contentMatches[k].match(/<file(?:\\s[^>]*)?>([\\s\\S]*?)<\\/file>/i);
-                        if (fileMatch && fileMatch[1]) return fileMatch[1].trim();
-                    }
-                }
-            }
+    } catch(e) {
+        console.log('[玉子市场] 数据解析跳过，使用模板自带函数');
+    }
+    
+    // 保存原有的函数引用（如果存在）
+    var _originalGetSTChat = window.getSTChat;
+    var _originalExtractTagFromChat = window.extractTagFromChat;
+    var _originalExtractFileFromContent = window.extractFileFromContent;
+    
+    // 只在模板没有定义这些函数时提供后备
+    window.getSTChat = window.getSTChat || function() {
+        if (window.TAMAKO_INJECTED_CHAT && window.TAMAKO_INJECTED_CHAT.length > 0) {
+            return window.TAMAKO_INJECTED_CHAT;
         }
-    } catch (e) {}
-    return "";
-};
-
-console.log('[玉子市场] 数据注入完成');
-</script>
+        // 尝试访问父窗口
+        try {
+            if (window.parent && window.parent.SillyTavern) {
+                var ctx = window.parent.SillyTavern.getContext();
+                if (ctx && ctx.chat) return ctx.chat;
+            }
+        } catch(e) {}
+        return [];
+    };
+    
+    window.getContext = window.getContext || function() {
+        return { chat: window.getSTChat() };
+    };
+    
+    console.log('[玉子市场] iframe 初始化完成');
+})();
+<\/script>
 `;
     
     let modifiedHtml = html;
     
-    const hasDoctype = html.includes('<!DOCTYPE') || html.includes('<!doctype');
-    const hasHtml = html.includes('<html') || html.includes('<HTML');
-    const hasHead = html.includes('<head') || html.includes('<HEAD');
-    const hasBody = html.includes('<body') || html.includes('<BODY');
-    
-    if (!hasDoctype && !hasHtml) {
-        modifiedHtml = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-${injectionScript}
-<style>
-body { margin: 0; padding: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-</style>
-</head>
-<body>
-${html}
-</body>
-</html>`;
-    } else if (hasHead && html.includes('</head>')) {
-        modifiedHtml = html.replace('</head>', injectionScript + '</head>');
-    } else if (hasBody) {
-        modifiedHtml = html.replace(/<body/i, injectionScript + '<body');
-    } else if (hasHtml) {
-        modifiedHtml = html.replace(/<html[^>]*>/i, '$&<head>' + injectionScript + '</head>');
+    // 在 </head> 前或 <body> 前注入脚本
+    if (modifiedHtml.includes('</head>')) {
+        modifiedHtml = modifiedHtml.replace('</head>', injectionScript + '</head>');
+    } else if (modifiedHtml.includes('<body')) {
+        modifiedHtml = modifiedHtml.replace(/<body/i, injectionScript + '<body');
     } else {
-        modifiedHtml = injectionScript + html;
+        // 如果没有标准结构，在开头添加
+        modifiedHtml = injectionScript + modifiedHtml;
     }
     
     return modifiedHtml;
@@ -593,11 +488,18 @@ function renderWithBeautifier($container, rawMessage, templateData) {
     try {
         let html = templateData.html;
         
+        // 首先替换 $1 占位符（这是最重要的）
         if (html.includes('$1')) {
-            html = html.replace(/\$1/g, rawMessage);
+            // 对 rawMessage 进行 HTML 实体编码，防止破坏 HTML 结构
+            // 但保留在 textarea 中的原始格式
+            html = html.replace(/\$1/g, function() {
+                return rawMessage || '';
+            });
         }
         
         const fullChatData = extractAllChatData();
+        
+        // 注入辅助脚本（不覆盖模板自带函数）
         html = injectDataIntoTemplate(html, rawMessage, fullChatData);
         
         $container.css('position', 'relative');
@@ -612,16 +514,13 @@ function renderWithBeautifier($container, rawMessage, templateData) {
         
         if (!iframe || !$loading.length) {
             $container.empty();
-            
             $container.append(`
                 <div class="tamako-beautifier-loading">
                     <span class="icon">🐔</span>
                     <span class="message">${getDeraMessage('loading')}</span>
                 </div>
             `);
-            
             $container.append(`<iframe class="tamako-beautifier-frame" frameborder="0" sandbox="allow-scripts allow-same-origin"></iframe>`);
-            
             iframe = $container.find('.tamako-beautifier-frame')[0];
             $loading = $container.find('.tamako-beautifier-loading');
         }
@@ -632,8 +531,13 @@ function renderWithBeautifier($container, rawMessage, templateData) {
         $iframe.css('opacity', '0');
         $loading.show();
         
-        iframe.onload = null;
+        // 清除之前的 Blob URL
+        if (iframe._blobUrl) {
+            URL.revokeObjectURL(iframe._blobUrl);
+            iframe._blobUrl = null;
+        }
         
+        iframe.onload = null;
         iframe.onload = function() {
             if (beautifierLoadTimeout) {
                 clearTimeout(beautifierLoadTimeout);
@@ -653,7 +557,21 @@ function renderWithBeautifier($container, rawMessage, templateData) {
             }
         }, 3000);
         
-        iframe.srcdoc = html;
+        // 通过 window.name 传递数据（更安全的方式）
+        const dataPayload = JSON.stringify({
+            chat: fullChatData.chat,
+            tags: fullChatData.tags,
+            raw: rawMessage
+        });
+        
+        // 使用 Blob URL
+        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+        const blobUrl = URL.createObjectURL(blob);
+        iframe._blobUrl = blobUrl;
+        
+        // 设置 name 属性传递数据
+        iframe.name = 'TAMAKO_DATA:' + dataPayload;
+        iframe.src = blobUrl;
         
         return true;
     } catch (e) {
@@ -663,8 +581,6 @@ function renderWithBeautifier($container, rawMessage, templateData) {
 }
 
 function clearTemplateCache() { cachedTemplate = null; cachedTemplateSource = ''; }
-
-// ========== 窗口相关代码 ==========
 
 function createWindow() {
     if (document.getElementById('tamako-market-window')) return $('#tamako-market-window');
@@ -766,9 +682,7 @@ function initDraggable($window) {
         offsetX = pos.x - rect.left;
         offsetY = pos.y - rect.top;
         $window.addClass('dragging');
-        
         hideBeautifierFrame($window);
-        
         e.preventDefault();
     }
     
@@ -785,9 +699,7 @@ function initDraggable($window) {
         if (isDragging) {
             isDragging = false;
             $window.removeClass('dragging');
-            
             showBeautifierFrame($window);
-            
             saveSetting('windowX', parseInt($window.css('left')));
             saveSetting('windowY', parseInt($window.css('top')));
         }
@@ -813,11 +725,9 @@ function initResizable($window) {
     function startResize(e) {
         e.preventDefault();
         e.stopPropagation();
-        
         const dir = this.getAttribute('data-dir');
         const pos = getEventPosition(e);
         const rect = $window[0].getBoundingClientRect();
-        
         resizeState = {
             isResizing: true,
             handle: dir,
@@ -826,9 +736,7 @@ function initResizable($window) {
             startWidth: rect.width,
             startHeight: rect.height
         };
-        
         hideBeautifierFrame($window);
-        
         $window.addClass('resizing');
         document.body.style.cursor = dir === 'se' ? 'nwse-resize' : (dir === 's' ? 'ns-resize' : 'ew-resize');
         document.body.style.userSelect = 'none';
@@ -836,12 +744,10 @@ function initResizable($window) {
     
     function moveResize(e) {
         if (!resizeState.isResizing) return;
-        
         e.preventDefault();
         const pos = getEventPosition(e);
         const deltaX = pos.x - resizeState.startX;
         const deltaY = pos.y - resizeState.startY;
-        
         if (resizeState.handle.includes('e') || resizeState.handle === 'se') {
             $window[0].style.width = Math.max(minWidth, resizeState.startWidth + deltaX) + 'px';
         }
@@ -852,16 +758,12 @@ function initResizable($window) {
     
     function endResize() {
         if (!resizeState.isResizing) return;
-        
         resizeState.isResizing = false;
         resizeState.handle = '';
-        
         $window.removeClass('resizing');
         document.body.style.cursor = '';
         document.body.style.userSelect = '';
-        
         showBeautifierFrame($window);
-        
         saveSetting('windowWidth', $window[0].offsetWidth);
         saveSetting('windowHeight', $window[0].offsetHeight);
     }
@@ -893,7 +795,6 @@ function bindWindowEvents($window) {
         $btn.prop('disabled', true);
         showDeraToast('scanning');
         capturedPlots = [];
-        
         setTimeout(() => {
             const result = scanAllMessages();
             $btn.prop('disabled', false);
@@ -1148,10 +1049,19 @@ function updateHistoryList() {
     updateCaptureCount();
 }
 
+/**
+ * 提取标签内容 - 核心函数
+ * 使用负向后行断言排除反引号包裹的标签（如 `<recall>`）
+ * @param {string} message - 消息内容
+ * @param {string} tagName - 标签名
+ * @returns {string[]} - 匹配到的标签内容数组
+ */
 function extractTagContent(message, tagName) {
     const matches = [];
     let match;
-    const regex = new RegExp(`<${tagName}[^>]*>([\\s\\S]*?)<\\/${tagName}>`, 'gi');
+    // 使用负向后行断言 (?<!`) 确保 < 前面不是反引号
+    // 使用负向前行断言 (?!`) 确保 > 后面不是反引号（针对闭合标签）
+    const regex = new RegExp(`(?<!\`)<${tagName}[^>]*>([\\s\\S]*?)<\\/${tagName}>(?!\`)`, 'gi');
     while ((match = regex.exec(message)) !== null) matches.push(match[0]);
     return matches;
 }
@@ -1419,42 +1329,34 @@ function createSettingsPanel() {
     
     function handleFile(file) {
         if (!file) return;
-        
         const validExtensions = ['.html', '.htm', '.json', '.txt'];
         const ext = '.' + file.name.split('.').pop().toLowerCase();
-        
         if (!validExtensions.includes(ext)) {
             $fileStatus.removeClass('success').addClass('error').text('不支持的文件类型');
             return;
         }
-        
         const reader = new FileReader();
         reader.onload = function(e) {
             const content = e.target.result;
             clearTemplateCache();
             const parsed = parseBeautifierTemplate(content);
-            
             if (!parsed) {
                 $fileStatus.removeClass('success').addClass('error').text('无法解析文件内容');
                 return;
             }
-            
             const validation = validateTemplate(parsed);
             if (!validation.valid) {
                 $fileStatus.removeClass('success').addClass('error').text(validation.error);
                 return;
             }
-            
             pendingTemplate = content;
             $pendingItem.data('fileName', file.name);
             updateTemplateDisplay();
             $fileStatus.removeClass('error').addClass('success').text('文件已加载，点击保存生效');
         };
-        
         reader.onerror = function() {
             $fileStatus.removeClass('success').addClass('error').text('文件读取失败');
         };
-        
         reader.readAsText(file);
     }
     
@@ -1510,20 +1412,16 @@ function createSettingsPanel() {
             }
             return;
         }
-        
         const s = getSettings();
         const fileName = $pendingItem.data('fileName') || '未命名模板';
         s.beautifier.template = pendingTemplate;
         s.beautifier.fileName = fileName;
         saveSetting('beautifier', s.beautifier);
-        
         pendingTemplate = null;
         $pendingItem.data('fileName', '');
         updateTemplateDisplay();
         $fileInput.val('');
-        
         $fileStatus.removeClass('error').addClass('success').text('已保存');
-        
         if (s.beautifier.enabled && capturedPlots.length > 0) {
             const latest = capturedPlots[capturedPlots.length - 1];
             updateCurrentContent(latest.content, latest.rawMessage);
@@ -1532,25 +1430,21 @@ function createSettingsPanel() {
     
     $('#tamako-beautifier-test').on('click', function() {
         const templateToTest = pendingTemplate || getSettings().beautifier?.template;
-        
         if (!templateToTest) {
             $fileStatus.removeClass('success').addClass('error').text('请先上传模板文件');
             return;
         }
-        
         clearTemplateCache();
         const parsed = parseBeautifierTemplate(templateToTest);
         if (!parsed) {
             $fileStatus.removeClass('success').addClass('error').text('模板格式无效');
             return;
         }
-        
         const validation = validateTemplate(parsed);
         if (!validation.valid) {
             $fileStatus.removeClass('success').addClass('error').text(validation.error);
             return;
         }
-        
         const testMsg = capturedPlots.length > 0 
             ? capturedPlots[capturedPlots.length - 1].rawMessage 
             : `以上是用户的本轮输入
@@ -1608,7 +1502,6 @@ function setupMutationObserver() {
                         }
                     }
                 }
-                
                 if (m.removedNodes.length > 0) {
                     for (const node of m.removedNodes) {
                         if (node.nodeType === 1 && (node.classList?.contains('mes') || node.querySelector?.('.mes'))) {
@@ -1617,7 +1510,6 @@ function setupMutationObserver() {
                         }
                     }
                 }
-                
                 if (hasAdded && hasRemoved) break;
             }
             
@@ -1625,7 +1517,6 @@ function setupMutationObserver() {
                 if (addDebounceTimer) clearTimeout(addDebounceTimer);
                 addDebounceTimer = setTimeout(() => checkLatestUserMessage(), 500);
             }
-            
             if (hasRemoved) {
                 if (removeDebounceTimer) clearTimeout(removeDebounceTimer);
                 removeDebounceTimer = setTimeout(() => validateCapturedPlots(), 300);
@@ -1650,9 +1541,7 @@ function initEventListeners() {
             
             const deleteEvents = ['MESSAGE_DELETED', 'MESSAGE_REMOVED', 'CHAT_UPDATED', 'MESSAGE_EDITED', 'MESSAGE_SWIPED'];
             for (const eventName of deleteEvents) {
-                try {
-                    context.eventSource.on(eventName, () => validateCapturedPlots());
-                } catch (e) {}
+                try { context.eventSource.on(eventName, () => validateCapturedPlots()); } catch (e) {}
             }
         }
         setupMutationObserver();
@@ -1667,7 +1556,7 @@ function initEventListeners() {
             setTimeout(createSettingsPanel, 2000);
             initEventListeners();
             setTimeout(() => scanAllMessages(), 1000);
-            console.log('[玉子市场] 开店啦！v2.4.4');
+            console.log('[玉子市场] 开店啦！v2.4.7');
         } catch (e) { console.error('[玉子市场] 初始化错误:', e); }
     };
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', onReady);
