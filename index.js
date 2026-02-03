@@ -1,9 +1,9 @@
 /* index.js */
 /**
  * 玉子市场 - SillyTavern 悬浮窗扩展
- * @version 2.4.7
- * 功能：捕获XML标签内容、自定义美化器、消息删除检测、移动端适配
- * 修复：排除反引号包裹的标签名，避免错误匹配
+ * @version 2.5.3
+ * 功能：捕获XML标签内容、自定义美化器、消息删除检测、移动端适配、主题编辑器
+ * 修改：删除背景渐变设置、增加更多字体选项
  */
 
 const extensionName = 'TamakoMarket';
@@ -20,6 +20,10 @@ const ICONS = {
     box: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 16.5c0 .38-.21.71-.53.88l-7.9 4.44c-.16.12-.36.18-.57.18-.21 0-.41-.06-.57-.18l-7.9-4.44A.991.991 0 0 1 3 16.5v-9c0-.38.21-.71.53-.88l7.9-4.44c.16-.12.36-.18.57-.18.21 0 .41.06.57.18l7.9 4.44c.32.17.53.5.53.88v9zM12 4.15L6.04 7.5 12 10.85l5.96-3.35L12 4.15zM5 15.91l6 3.38v-6.71L5 9.21v6.7zm14 0v-6.7l-6 3.37v6.71l6-3.38z"/></svg>`,
     pin: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`,
     trash: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>`,
+    edit: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>`,
+    eyedropper: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.71 5.63l-2.34-2.34a1 1 0 0 0-1.41 0l-3.12 3.12-1.23-1.21a1 1 0 0 0-1.42 0L10 6.41a1 1 0 0 0 0 1.41l.71.72-7.37 7.37a2 2 0 0 0-.59 1.42V21h3.67a2 2 0 0 0 1.42-.59l7.37-7.37.72.71a1 1 0 0 0 1.41 0l1.21-1.21a1 1 0 0 0 0-1.42l-1.21-1.23 3.12-3.12a1 1 0 0 0 .25-1.14zM5.41 19H5v-.41l7.37-7.37 1.41 1.41L6.41 19z"/></svg>`,
+    check: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>`,
+    reset: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>`,
 };
 
 const defaultSettings = {
@@ -36,13 +40,45 @@ const defaultSettings = {
     toggleX: null,
     toggleY: null,
     beautifier: { enabled: false, template: '', fileName: '' },
+    customTheme: null,
 };
 
 const themes = {
-    tamako: { name: '玉子市场', primary: '#FFB6C1', secondary: '#DDA0DD' },
-    ocean: { name: '海边小店', primary: '#87CEEB', secondary: '#5F9EA0' },
-    sunflower: { name: '向日葵田', primary: '#FFD700', secondary: '#FFA500' },
-    night: { name: '夜间模式', primary: '#9370DB', secondary: '#6A5ACD' },
+    tamako: { name: '🌸 玉子市场', primary: '#FFB6C1', secondary: '#DDA0DD', bg: 'linear-gradient(135deg, #FFF5F7 0%, #FFFFFF 50%, #F8F0FF 100%)', surface: '#FFFFFF', surfaceAlt: '#FFF8FA', text: '#333333', textMuted: '#888888', border: 'rgba(0, 0, 0, 0.1)' },
+    ocean: { name: '🌊 海边小店', primary: '#87CEEB', secondary: '#5F9EA0', bg: 'linear-gradient(135deg, #F0F8FF 0%, #FFFFFF 50%, #E6F3FF 100%)', surface: '#FFFFFF', surfaceAlt: '#F0F8FF', text: '#333333', textMuted: '#888888', border: 'rgba(0, 0, 0, 0.1)' },
+    sunflower: { name: '🌻 向日葵田', primary: '#FFD700', secondary: '#FFA500', bg: 'linear-gradient(135deg, #FFFEF0 0%, #FFFFFF 50%, #FFF8E7 100%)', surface: '#FFFFFF', surfaceAlt: '#FFFEF0', text: '#333333', textMuted: '#888888', border: 'rgba(0, 0, 0, 0.1)' },
+    night: { name: '🌙 夜间模式', primary: '#9370DB', secondary: '#6A5ACD', bg: 'linear-gradient(135deg, #2D2D3A 0%, #1E1E28 50%, #252532 100%)', surface: '#1E1E28', surfaceAlt: '#2D2D3A', text: '#E0E0E0', textMuted: '#888888', border: '#3D3D4A' },
+};
+
+const defaultCustomTheme = {
+    name: '自定义',
+    basedOn: 'tamako',
+    colors: {
+        primary: '#FFB6C1',
+        secondary: '#DDA0DD',
+        bg: 'linear-gradient(135deg, #FFF5F7 0%, #FFFFFF 50%, #F8F0FF 100%)',
+        surface: '#FFFFFF',
+        surfaceAlt: '#FFF8FA',
+        text: '#333333',
+        textMuted: '#888888',
+        border: 'rgba(0, 0, 0, 0.1)'
+    },
+    borderRadius: 16,
+    opacity: 100,
+    fontFamily: 'system'
+};
+
+const fontOptions = {
+    system: { name: '📱 系统默认', value: "'Segoe UI', 'Microsoft YaHei', sans-serif" },
+    cute: { name: '🎀 可爱圆润', value: "'Comic Sans MS', 'Microsoft YaHei', cursive" },
+    elegant: { name: '📜 优雅衬线', value: "Georgia, 'Noto Serif SC', serif" },
+    mono: { name: '💻 等宽代码', value: "Consolas, 'Source Code Pro', monospace" },
+    pixel: { name: '🎮 像素复古', value: "'VT323', 'Courier New', monospace" },
+    handwrite: { name: '✍️ 手写体', value: "'Segoe Script', 'STXingkai', cursive" },
+    rounded: { name: '⭕ 圆体', value: "'Yuanti SC', 'Microsoft YaHei', sans-serif" },
+    songti: { name: '📖 宋体', value: "'Noto Serif SC', 'SimSun', serif" },
+    heiti: { name: '🔲 黑体', value: "'Noto Sans SC', 'SimHei', sans-serif" },
+    kaiti: { name: '🖌️ 楷体', value: "'STKaiti', 'KaiTi', serif" }
 };
 
 const deraMessages = {
@@ -54,6 +90,7 @@ const deraMessages = {
     noResult: ['德拉找不到这个呢...', '没有匹配的商品哦~', '德拉翻遍了也没找到~'],
     tooMany: ['商品太多了，德拉只拿了一部分~', '库存爆满！德拉尽力了~'],
     loading: ['德拉正在准备...', '稍等一下哦~', '德拉在努力加载中...'],
+    theme: ['德拉帮你换装啦~', '新风格真好看！', '德拉喜欢这个颜色~'],
 };
 
 let capturedPlots = [];
@@ -63,6 +100,10 @@ let searchQuery = '';
 let currentTheme = 'tamako';
 let cachedTemplate = null;
 let cachedTemplateSource = '';
+let isThemeEditorOpen = false;
+let isEyedropperActive = false;
+let currentEditingColor = null;
+let tempCustomTheme = null;
 
 let resizeState = {
     isResizing: false,
@@ -70,7 +111,16 @@ let resizeState = {
     startX: 0,
     startY: 0,
     startWidth: 0,
-    startHeight: 0
+    startHeight: 0,
+    element: null,
+    pointerId: null
+};
+
+let dragState = {
+    isDragging: false,
+    offsetX: 0,
+    offsetY: 0,
+    pointerId: null
 };
 
 let validateDebounceTimer = null;
@@ -112,6 +162,7 @@ function getSettings() {
             if (!s.maxStoredPlots) s.maxStoredPlots = defaultSettings.maxStoredPlots;
             if (!s.beautifier) s.beautifier = { ...defaultSettings.beautifier };
             if (s.beautifier.fileName === undefined) s.beautifier.fileName = '';
+            if (s.customTheme === undefined) s.customTheme = null;
             return s;
         }
     } catch (e) { console.warn('[玉子市场] 无法获取设置:', e); }
@@ -126,17 +177,867 @@ function saveSetting(key, value) {
     } catch (e) { console.warn('[玉子市场] 保存失败:', e); }
 }
 
-function applyTheme(themeName) {
-    const theme = themes[themeName] || themes.tamako;
-    currentTheme = themeName;
+function hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+    } : null;
+}
+
+function rgbToHex(r, g, b) {
+    return '#' + [r, g, b].map(x => {
+        const hex = Math.max(0, Math.min(255, Math.round(x))).toString(16);
+        return hex.length === 1 ? '0' + hex : hex;
+    }).join('');
+}
+
+function rgbToHsl(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h, s, l = (max + min) / 2;
+    if (max === min) {
+        h = s = 0;
+    } else {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+            case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+            case g: h = ((b - r) / d + 2) / 6; break;
+            case b: h = ((r - g) / d + 4) / 6; break;
+        }
+    }
+    return { h: h * 360, s: s * 100, l: l * 100 };
+}
+
+function hslToRgb(h, s, l) {
+    h /= 360; s /= 100; l /= 100;
+    let r, g, b;
+    if (s === 0) {
+        r = g = b = l;
+    } else {
+        const hue2rgb = (p, q, t) => {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1/6) return p + (q - p) * 6 * t;
+            if (t < 1/2) return q;
+            if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+            return p;
+        };
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
+    }
+    return { r: Math.round(r * 255), g: Math.round(g * 255), b: Math.round(b * 255) };
+}
+
+function parseColor(color) {
+    if (!color) return null;
+    if (color.startsWith('#')) {
+        return hexToRgb(color);
+    }
+    const rgbMatch = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    if (rgbMatch) {
+        return { r: parseInt(rgbMatch[1]), g: parseInt(rgbMatch[2]), b: parseInt(rgbMatch[3]) };
+    }
+    return null;
+}
+
+function getCurrentThemeData() {
+    const settings = getSettings();
+    if (currentTheme === 'custom' && settings.customTheme) {
+        return settings.customTheme;
+    }
+    const preset = themes[currentTheme] || themes.tamako;
+    return {
+        name: preset.name,
+        basedOn: currentTheme,
+        colors: {
+            primary: preset.primary,
+            secondary: preset.secondary,
+            bg: preset.bg,
+            surface: preset.surface,
+            surfaceAlt: preset.surfaceAlt,
+            text: preset.text,
+            textMuted: preset.textMuted,
+            border: preset.border
+        },
+        borderRadius: 16,
+        opacity: 100,
+        fontFamily: 'system'
+    };
+}
+
+function applyThemeStyles(themeData, $window, $toggle) {
+    const colors = themeData.colors;
+    const radius = themeData.borderRadius + 'px';
+    const opacity = themeData.opacity / 100;
+    const font = fontOptions[themeData.fontFamily]?.value || fontOptions.system.value;
+    
+    const cssVars = {
+        '--tamako-primary': colors.primary,
+        '--tamako-secondary': colors.secondary,
+        '--tamako-bg': colors.bg,
+        '--tamako-surface': colors.surface,
+        '--tamako-surface-alt': colors.surfaceAlt,
+        '--tamako-text': colors.text,
+        '--tamako-text-muted': colors.textMuted,
+        '--tamako-border': colors.border,
+        '--tamako-radius': radius,
+        '--tamako-opacity': opacity,
+        '--tamako-font': font,
+        '--theme-primary': colors.primary,
+        '--theme-secondary': colors.secondary
+    };
+    
+    if ($window && $window.length) {
+        $window.css(cssVars);
+        $window.css({
+            'border-radius': radius,
+            'opacity': opacity,
+            'font-family': font
+        });
+    }
+    
+    if ($toggle && $toggle.length) {
+        $toggle.css({
+            '--theme-primary': colors.primary,
+            '--theme-secondary': colors.secondary,
+            'border-radius': radius,
+            'font-family': font
+        });
+    }
+}
+
+function applyTheme(themeName, customData = null) {
     const $window = $('#tamako-market-window');
     const $toggle = $('#tamako-market-toggle');
-    $window.removeClass('theme-tamako theme-ocean theme-sunflower theme-night').addClass(`theme-${themeName}`);
-    $toggle.removeClass('theme-tamako theme-ocean theme-sunflower theme-night').addClass(`theme-${themeName}`);
-    $window.css({ '--theme-primary': theme.primary, '--theme-secondary': theme.secondary });
-    $toggle.css({ '--theme-primary': theme.primary, '--theme-secondary': theme.secondary });
-    saveSetting('theme', themeName);
+    
+    $window.removeClass('theme-tamako theme-ocean theme-sunflower theme-night theme-custom');
+    $toggle.removeClass('theme-tamako theme-ocean theme-sunflower theme-night theme-custom');
+    
+    if (themeName === 'custom' && customData) {
+        currentTheme = 'custom';
+        $window.addClass('theme-custom');
+        $toggle.addClass('theme-custom');
+        applyThemeStyles(customData, $window, $toggle);
+        saveSetting('theme', 'custom');
+        saveSetting('customTheme', customData);
+    } else {
+        currentTheme = themeName;
+        const preset = themes[themeName] || themes.tamako;
+        $window.addClass(`theme-${themeName}`);
+        $toggle.addClass(`theme-${themeName}`);
+        
+        const themeData = {
+            colors: {
+                primary: preset.primary,
+                secondary: preset.secondary,
+                bg: preset.bg,
+                surface: preset.surface,
+                surfaceAlt: preset.surfaceAlt,
+                text: preset.text,
+                textMuted: preset.textMuted,
+                border: preset.border
+            },
+            borderRadius: 16,
+            opacity: 100,
+            fontFamily: 'system'
+        };
+        applyThemeStyles(themeData, $window, $toggle);
+        saveSetting('theme', themeName);
+    }
+    
     $('#tamako-theme-selector').val(themeName);
+}
+
+function createColorPicker(colorKey, label, currentColor) {
+    const id = `tamako-color-${colorKey}`;
+    const isMobile = isMobileDevice();
+    
+    const eyedropperBtn = isMobile ? '' : `<button class="tamako-eyedropper-btn" data-color-key="${colorKey}" title="吸取颜色">${ICONS.eyedropper}</button>`;
+    
+    return `
+        <div class="tamako-color-row">
+            <label for="${id}">${label}</label>
+            <div class="tamako-color-input-group">
+                <div class="tamako-color-preview" data-color-key="${colorKey}" style="background: ${currentColor}"></div>
+                <input type="text" id="${id}" class="tamako-color-hex" data-color-key="${colorKey}" value="${currentColor}" placeholder="#FFFFFF">
+                ${eyedropperBtn}
+            </div>
+        </div>
+    `;
+}
+
+function createThemeEditorContent() {
+    const themeData = tempCustomTheme || getCurrentThemeData();
+    const colors = themeData.colors;
+    
+    const themeOptions = Object.entries(themes).map(([key, theme]) => 
+        `<option value="${key}" ${themeData.basedOn === key ? 'selected' : ''}>${theme.name}</option>`
+    ).join('');
+    
+    const fontOptionsHtml = Object.entries(fontOptions).map(([key, font]) =>
+        `<option value="${key}" ${themeData.fontFamily === key ? 'selected' : ''}>${font.name}</option>`
+    ).join('');
+    
+    return `
+        <div class="tamako-theme-editor">
+            <div class="tamako-editor-header">
+                <span>🎨 主题编辑器</span>
+                <div class="tamako-editor-actions">
+                    <button class="tamako-editor-btn save" title="保存">${ICONS.check}</button>
+                    <button class="tamako-editor-btn reset" title="重置">${ICONS.reset}</button>
+                    <button class="tamako-editor-btn close" title="关闭">${ICONS.close}</button>
+                </div>
+            </div>
+            
+            <div class="tamako-editor-body">
+                <div class="tamako-editor-section">
+                    <div class="tamako-section-title">基础模板</div>
+                    <select id="tamako-base-theme" class="tamako-editor-select">
+                        ${themeOptions}
+                    </select>
+                </div>
+                
+                <div class="tamako-editor-section">
+                    <div class="tamako-section-title">颜色设置</div>
+                    ${createColorPicker('primary', '主色', colors.primary)}
+                    ${createColorPicker('secondary', '辅色', colors.secondary)}
+                    ${createColorPicker('surface', '表面色', colors.surface)}
+                    ${createColorPicker('surfaceAlt', '表面色2', colors.surfaceAlt)}
+                    ${createColorPicker('text', '文字色', colors.text)}
+                    ${createColorPicker('textMuted', '次要文字', colors.textMuted)}
+                </div>
+                
+                <div class="tamako-editor-section">
+                    <div class="tamako-section-title">样式设置</div>
+                    <div class="tamako-slider-row">
+                        <label>圆角大小</label>
+                        <input type="range" id="tamako-border-radius" min="0" max="24" value="${themeData.borderRadius}">
+                        <span class="tamako-slider-value">${themeData.borderRadius}px</span>
+                    </div>
+                    <div class="tamako-slider-row">
+                        <label>透明度</label>
+                        <input type="range" id="tamako-opacity" min="50" max="100" value="${themeData.opacity}">
+                        <span class="tamako-slider-value">${themeData.opacity}%</span>
+                    </div>
+                </div>
+                
+                <div class="tamako-editor-section">
+                    <div class="tamako-section-title">字体</div>
+                    <select id="tamako-font-family" class="tamako-editor-select">
+                        ${fontOptionsHtml}
+                    </select>
+                    <div class="tamako-font-preview">预览：德拉的玉子市场 ABC 123</div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="tamako-color-picker-popup" class="tamako-color-picker-popup" style="display: none;">
+            <div class="tamako-picker-header">
+                <span>选择颜色</span>
+                <button class="tamako-picker-close">${ICONS.close}</button>
+            </div>
+            <div class="tamako-picker-body">
+                <div class="tamako-hue-slider">
+                    <input type="range" id="tamako-hue" min="0" max="360" value="0">
+                </div>
+                <div class="tamako-saturation-lightness">
+                    <canvas id="tamako-sl-canvas" width="200" height="150"></canvas>
+                    <div class="tamako-sl-cursor"></div>
+                </div>
+                <div class="tamako-picker-preview">
+                    <div class="tamako-preview-color"></div>
+                    <input type="text" class="tamako-preview-hex" value="#FFFFFF">
+                </div>
+                <div class="tamako-picker-actions">
+                    ${isMobileDevice() ? '' : `<button class="tamako-picker-eyedropper">${ICONS.eyedropper} 吸取</button>`}
+                    <button class="tamako-picker-confirm">确定</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function openThemeEditor() {
+    if (isThemeEditorOpen) return;
+    isThemeEditorOpen = true;
+    
+    const $window = $('#tamako-market-window');
+    tempCustomTheme = JSON.parse(JSON.stringify(getCurrentThemeData()));
+    
+    $window.find('.tamako-tabs, .tamako-content, .tamako-delete-bar').hide();
+    $window.find('.tamako-theme-panel').hide();
+    
+    const editorHtml = createThemeEditorContent();
+    $window.append(`<div class="tamako-editor-container">${editorHtml}</div>`);
+    
+    bindThemeEditorEvents($window);
+    initColorPicker();
+    updateFontPreview();
+}
+
+function closeThemeEditor(save = false) {
+    if (!isThemeEditorOpen) return;
+    isThemeEditorOpen = false;
+    
+    const $window = $('#tamako-market-window');
+    
+    if (save && tempCustomTheme) {
+        applyTheme('custom', tempCustomTheme);
+        showDeraToast('theme');
+    } else {
+        const settings = getSettings();
+        if (settings.theme === 'custom' && settings.customTheme) {
+            applyTheme('custom', settings.customTheme);
+        } else {
+            applyTheme(settings.theme || 'tamako');
+        }
+    }
+    
+    tempCustomTheme = null;
+    $window.find('.tamako-editor-container').remove();
+    $window.find('.tamako-tabs, .tamako-content[data-content="current"]').show();
+    
+    if (deleteMode) {
+        $window.find('.tamako-delete-bar').show();
+    }
+}
+
+function updateFontPreview() {
+    const fontKey = $('#tamako-font-family').val() || 'system';
+    const fontValue = fontOptions[fontKey]?.value || fontOptions.system.value;
+    $('.tamako-font-preview').css('font-family', fontValue);
+}
+
+function bindThemeEditorEvents($window) {
+    $window.find('.tamako-editor-btn.save').on('click', () => closeThemeEditor(true));
+    $window.find('.tamako-editor-btn.reset').on('click', resetThemeEditor);
+    $window.find('.tamako-editor-btn.close').on('click', () => closeThemeEditor(false));
+    
+    $window.find('#tamako-base-theme').on('change', function() {
+        const baseName = this.value;
+        const preset = themes[baseName];
+        if (preset) {
+            tempCustomTheme = {
+                name: '自定义',
+                basedOn: baseName,
+                colors: {
+                    primary: preset.primary,
+                    secondary: preset.secondary,
+                    bg: preset.bg,
+                    surface: preset.surface,
+                    surfaceAlt: preset.surfaceAlt,
+                    text: preset.text,
+                    textMuted: preset.textMuted,
+                    border: preset.border
+                },
+                borderRadius: tempCustomTheme?.borderRadius || 16,
+                opacity: tempCustomTheme?.opacity || 100,
+                fontFamily: tempCustomTheme?.fontFamily || 'system'
+            };
+            refreshEditorColors();
+            applyTempTheme();
+        }
+    });
+    
+    $window.find('.tamako-color-preview, .tamako-color-hex').on('click', function(e) {
+        e.stopPropagation();
+        const colorKey = $(this).data('color-key');
+        openColorPicker(colorKey);
+    });
+    
+    if (!isMobileDevice()) {
+        $window.find('.tamako-eyedropper-btn').on('click', function(e) {
+            e.stopPropagation();
+            const colorKey = $(this).data('color-key');
+            startEyedropper(colorKey);
+        });
+    }
+    
+    $window.find('.tamako-color-hex').on('input', function() {
+        const colorKey = $(this).data('color-key');
+        let value = $(this).val().trim();
+        if (!value.startsWith('#')) value = '#' + value;
+        if (/^#[A-Fa-f0-9]{6}$/.test(value)) {
+            updateTempColor(colorKey, value);
+            $(this).siblings('.tamako-color-preview').css('background', value);
+            applyTempTheme();
+        }
+    });
+    
+    $window.find('#tamako-border-radius').on('input', function() {
+        const value = parseInt(this.value);
+        $(this).siblings('.tamako-slider-value').text(value + 'px');
+        if (tempCustomTheme) {
+            tempCustomTheme.borderRadius = value;
+            applyTempTheme();
+        }
+    });
+    
+    $window.find('#tamako-opacity').on('input', function() {
+        const value = parseInt(this.value);
+        $(this).siblings('.tamako-slider-value').text(value + '%');
+        if (tempCustomTheme) {
+            tempCustomTheme.opacity = value;
+            applyTempTheme();
+        }
+    });
+    
+    $window.find('#tamako-font-family').on('change', function() {
+        if (tempCustomTheme) {
+            tempCustomTheme.fontFamily = this.value;
+            applyTempTheme();
+            updateFontPreview();
+        }
+    });
+}
+
+function refreshEditorColors() {
+    if (!tempCustomTheme) return;
+    const colors = tempCustomTheme.colors;
+    
+    const colorMap = {
+        primary: colors.primary,
+        secondary: colors.secondary,
+        surface: colors.surface,
+        surfaceAlt: colors.surfaceAlt,
+        text: colors.text,
+        textMuted: colors.textMuted
+    };
+    
+    Object.entries(colorMap).forEach(([key, value]) => {
+        $(`.tamako-color-preview[data-color-key="${key}"]`).css('background', value);
+        $(`.tamako-color-hex[data-color-key="${key}"]`).val(value);
+    });
+}
+
+function updateTempColor(colorKey, value) {
+    if (!tempCustomTheme) return;
+    
+    if (tempCustomTheme.colors[colorKey] !== undefined) {
+        tempCustomTheme.colors[colorKey] = value;
+    }
+}
+
+function applyTempTheme() {
+    if (!tempCustomTheme) return;
+    const $window = $('#tamako-market-window');
+    const $toggle = $('#tamako-market-toggle');
+    applyThemeStyles(tempCustomTheme, $window, $toggle);
+}
+
+function resetThemeEditor() {
+    const baseName = $('#tamako-base-theme').val() || 'tamako';
+    const preset = themes[baseName];
+    
+    tempCustomTheme = {
+        name: '自定义',
+        basedOn: baseName,
+        colors: {
+            primary: preset.primary,
+            secondary: preset.secondary,
+            bg: preset.bg,
+            surface: preset.surface,
+            surfaceAlt: preset.surfaceAlt,
+            text: preset.text,
+            textMuted: preset.textMuted,
+            border: preset.border
+        },
+        borderRadius: 16,
+        opacity: 100,
+        fontFamily: 'system'
+    };
+    
+    refreshEditorColors();
+    
+    $('#tamako-border-radius').val(16).siblings('.tamako-slider-value').text('16px');
+    $('#tamako-opacity').val(100).siblings('.tamako-slider-value').text('100%');
+    $('#tamako-font-family').val('system');
+    updateFontPreview();
+    
+    applyTempTheme();
+}
+
+let pickerState = {
+    colorKey: null,
+    hue: 0,
+    saturation: 100,
+    lightness: 50
+};
+
+function initColorPicker() {
+    const $popup = $('#tamako-color-picker-popup');
+    
+    $popup.find('.tamako-picker-close').on('click', closeColorPicker);
+    $popup.find('.tamako-picker-confirm').on('click', confirmColorPicker);
+    
+    if (!isMobileDevice()) {
+        $popup.find('.tamako-picker-eyedropper').on('click', () => {
+            closeColorPicker();
+            startEyedropper(pickerState.colorKey);
+        });
+    }
+    
+    $popup.find('#tamako-hue').on('input', function() {
+        pickerState.hue = parseInt(this.value);
+        updateSLCanvas();
+        updatePickerPreview();
+    });
+    
+    const canvas = document.getElementById('tamako-sl-canvas');
+    if (canvas) {
+        canvas.addEventListener('click', handleSLCanvasClick);
+        canvas.addEventListener('mousedown', startSLDrag);
+        canvas.addEventListener('touchstart', startSLDragTouch, { passive: false });
+    }
+    
+    $popup.find('.tamako-preview-hex').on('input', function() {
+        let value = $(this).val().trim();
+        if (!value.startsWith('#')) value = '#' + value;
+        if (/^#[A-Fa-f0-9]{6}$/.test(value)) {
+            const rgb = hexToRgb(value);
+            if (rgb) {
+                const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+                pickerState.hue = hsl.h;
+                pickerState.saturation = hsl.s;
+                pickerState.lightness = hsl.l;
+                $('#tamako-hue').val(pickerState.hue);
+                updateSLCanvas();
+                updateSLCursor();
+                $popup.find('.tamako-preview-color').css('background', value);
+            }
+        }
+    });
+}
+
+function openColorPicker(colorKey) {
+    const $popup = $('#tamako-color-picker-popup');
+    pickerState.colorKey = colorKey;
+    
+    const currentColor = $(`.tamako-color-hex[data-color-key="${colorKey}"]`).val() || '#FFB6C1';
+    const rgb = hexToRgb(currentColor);
+    
+    if (rgb) {
+        const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+        pickerState.hue = hsl.h;
+        pickerState.saturation = hsl.s;
+        pickerState.lightness = hsl.l;
+    }
+    
+    $('#tamako-hue').val(pickerState.hue);
+    updateSLCanvas();
+    updateSLCursor();
+    updatePickerPreview();
+    
+    $popup.show();
+}
+
+function closeColorPicker() {
+    $('#tamako-color-picker-popup').hide();
+    pickerState.colorKey = null;
+}
+
+function confirmColorPicker() {
+    const hex = $('#tamako-color-picker-popup .tamako-preview-hex').val();
+    if (pickerState.colorKey && /^#[A-Fa-f0-9]{6}$/i.test(hex)) {
+        $(`.tamako-color-preview[data-color-key="${pickerState.colorKey}"]`).css('background', hex);
+        $(`.tamako-color-hex[data-color-key="${pickerState.colorKey}"]`).val(hex);
+        updateTempColor(pickerState.colorKey, hex);
+        applyTempTheme();
+    }
+    closeColorPicker();
+}
+
+function updateSLCanvas() {
+    const canvas = document.getElementById('tamako-sl-canvas');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    for (let x = 0; x < width; x++) {
+        for (let y = 0; y < height; y++) {
+            const s = (x / width) * 100;
+            const l = 100 - (y / height) * 100;
+            const rgb = hslToRgb(pickerState.hue, s, l);
+            ctx.fillStyle = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+            ctx.fillRect(x, y, 1, 1);
+        }
+    }
+}
+
+function updateSLCursor() {
+    const $cursor = $('.tamako-sl-cursor');
+    const canvas = document.getElementById('tamako-sl-canvas');
+    if (!canvas || !$cursor.length) return;
+    
+    const x = (pickerState.saturation / 100) * canvas.width;
+    const y = ((100 - pickerState.lightness) / 100) * canvas.height;
+    
+    $cursor.css({
+        left: x + 'px',
+        top: y + 'px'
+    });
+}
+
+function updatePickerPreview() {
+    const rgb = hslToRgb(pickerState.hue, pickerState.saturation, pickerState.lightness);
+    const hex = rgbToHex(rgb.r, rgb.g, rgb.b);
+    
+    $('#tamako-color-picker-popup .tamako-preview-color').css('background', hex);
+    $('#tamako-color-picker-popup .tamako-preview-hex').val(hex);
+}
+
+function handleSLCanvasClick(e) {
+    const canvas = e.target;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    pickerState.saturation = (x / canvas.width) * 100;
+    pickerState.lightness = 100 - (y / canvas.height) * 100;
+    
+    updateSLCursor();
+    updatePickerPreview();
+}
+
+let isDraggingSL = false;
+
+function startSLDrag(e) {
+    isDraggingSL = true;
+    handleSLCanvasClick(e);
+    
+    const moveHandler = (e) => {
+        if (!isDraggingSL) return;
+        const canvas = document.getElementById('tamako-sl-canvas');
+        if (!canvas) return;
+        
+        const rect = canvas.getBoundingClientRect();
+        let x = e.clientX - rect.left;
+        let y = e.clientY - rect.top;
+        
+        x = Math.max(0, Math.min(x, canvas.width));
+        y = Math.max(0, Math.min(y, canvas.height));
+        
+        pickerState.saturation = (x / canvas.width) * 100;
+        pickerState.lightness = 100 - (y / canvas.height) * 100;
+        
+        updateSLCursor();
+        updatePickerPreview();
+    };
+    
+    const upHandler = () => {
+        isDraggingSL = false;
+        document.removeEventListener('mousemove', moveHandler);
+        document.removeEventListener('mouseup', upHandler);
+    };
+    
+    document.addEventListener('mousemove', moveHandler);
+    document.addEventListener('mouseup', upHandler);
+}
+
+function startSLDragTouch(e) {
+    e.preventDefault();
+    isDraggingSL = true;
+    
+    const canvas = e.target;
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    let x = touch.clientX - rect.left;
+    let y = touch.clientY - rect.top;
+    
+    x = Math.max(0, Math.min(x, canvas.width));
+    y = Math.max(0, Math.min(y, canvas.height));
+    
+    pickerState.saturation = (x / canvas.width) * 100;
+    pickerState.lightness = 100 - (y / canvas.height) * 100;
+    
+    updateSLCursor();
+    updatePickerPreview();
+    
+    const moveHandler = (e) => {
+        if (!isDraggingSL) return;
+        e.preventDefault();
+        
+        const touch = e.touches[0];
+        let x = touch.clientX - rect.left;
+        let y = touch.clientY - rect.top;
+        
+        x = Math.max(0, Math.min(x, canvas.width));
+        y = Math.max(0, Math.min(y, canvas.height));
+        
+        pickerState.saturation = (x / canvas.width) * 100;
+        pickerState.lightness = 100 - (y / canvas.height) * 100;
+        
+        updateSLCursor();
+        updatePickerPreview();
+    };
+    
+    const endHandler = () => {
+        isDraggingSL = false;
+        document.removeEventListener('touchmove', moveHandler);
+        document.removeEventListener('touchend', endHandler);
+    };
+    
+    document.addEventListener('touchmove', moveHandler, { passive: false });
+    document.addEventListener('touchend', endHandler);
+}
+
+// ===== 吸管工具（仅 PC 端） =====
+
+function startEyedropper(colorKey) {
+    if (isMobileDevice()) return;
+    
+    isEyedropperActive = true;
+    currentEditingColor = colorKey;
+    
+    if (window.EyeDropper) {
+        useNativeEyeDropper();
+        return;
+    }
+    
+    const $window = $('#tamako-market-window');
+    const $toggle = $('#tamako-market-toggle');
+    
+    $window.css('visibility', 'hidden');
+    $toggle.css('visibility', 'hidden');
+    
+    $('body').addClass('tamako-eyedropper-mode');
+    
+    const $indicator = $('<div class="tamako-eyedropper-indicator">🎯 点击任意位置吸取颜色，ESC取消</div>');
+    $('body').append($indicator);
+    
+    setTimeout(() => {
+        $(document).on('click.eyedropper', handleEyedropperClick);
+        $(document).on('keydown.eyedropper', handleEyedropperKeydown);
+        $(document).on('mousemove.eyedropper', handleEyedropperMove);
+    }, 50);
+}
+
+async function useNativeEyeDropper() {
+    try {
+        const eyeDropper = new EyeDropper();
+        const result = await eyeDropper.open();
+        
+        if (result.sRGBHex && currentEditingColor) {
+            const color = result.sRGBHex;
+            $(`.tamako-color-preview[data-color-key="${currentEditingColor}"]`).css('background', color);
+            $(`.tamako-color-hex[data-color-key="${currentEditingColor}"]`).val(color);
+            updateTempColor(currentEditingColor, color);
+            applyTempTheme();
+        }
+    } catch (err) {
+        console.log('[玉子市场] EyeDropper 取消或出错:', err);
+    } finally {
+        isEyedropperActive = false;
+        currentEditingColor = null;
+    }
+}
+
+function stopEyedropper() {
+    isEyedropperActive = false;
+    currentEditingColor = null;
+    
+    $('body').removeClass('tamako-eyedropper-mode');
+    $('.tamako-eyedropper-indicator, .tamako-eyedropper-preview').remove();
+    
+    $('#tamako-market-window').css('visibility', 'visible');
+    $('#tamako-market-toggle').css('visibility', 'visible');
+    
+    $(document).off('click.eyedropper');
+    $(document).off('keydown.eyedropper');
+    $(document).off('mousemove.eyedropper');
+}
+
+function getColorAtPoint(x, y) {
+    const element = document.elementFromPoint(x, y);
+    if (!element) return null;
+    
+    const computedStyle = window.getComputedStyle(element);
+    
+    let color = computedStyle.backgroundColor;
+    if (color && color !== 'rgba(0, 0, 0, 0)' && color !== 'transparent') {
+        const rgb = parseColor(color);
+        if (rgb) return rgbToHex(rgb.r, rgb.g, rgb.b);
+    }
+    
+    color = computedStyle.color;
+    if (color) {
+        const rgb = parseColor(color);
+        if (rgb && !(rgb.r === 0 && rgb.g === 0 && rgb.b === 0)) {
+            return rgbToHex(rgb.r, rgb.g, rgb.b);
+        }
+    }
+    
+    let parent = element.parentElement;
+    let depth = 0;
+    while (parent && depth < 10) {
+        const parentStyle = window.getComputedStyle(parent);
+        color = parentStyle.backgroundColor;
+        if (color && color !== 'rgba(0, 0, 0, 0)' && color !== 'transparent') {
+            const rgb = parseColor(color);
+            if (rgb) return rgbToHex(rgb.r, rgb.g, rgb.b);
+        }
+        parent = parent.parentElement;
+        depth++;
+    }
+    
+    return '#808080';
+}
+
+function handleEyedropperClick(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const color = getColorAtPoint(e.clientX, e.clientY);
+    
+    if (color && currentEditingColor) {
+        $(`.tamako-color-preview[data-color-key="${currentEditingColor}"]`).css('background', color);
+        $(`.tamako-color-hex[data-color-key="${currentEditingColor}"]`).val(color);
+        updateTempColor(currentEditingColor, color);
+        applyTempTheme();
+    }
+    
+    stopEyedropper();
+}
+
+function handleEyedropperKeydown(e) {
+    if (e.key === 'Escape') {
+        stopEyedropper();
+    }
+}
+
+function handleEyedropperMove(e) {
+    let $preview = $('.tamako-eyedropper-preview');
+    if (!$preview.length) {
+        $preview = $('<div class="tamako-eyedropper-preview"><div class="ep-color"></div><div class="ep-value"></div></div>');
+        $('body').append($preview);
+    }
+    
+    const color = getColorAtPoint(e.clientX, e.clientY);
+    
+    let left = e.clientX + 20;
+    let top = e.clientY + 20;
+    
+    if (left + 120 > window.innerWidth) {
+        left = e.clientX - 130;
+    }
+    if (top + 40 > window.innerHeight) {
+        top = e.clientY - 50;
+    }
+    
+    $preview.css({
+        left: left + 'px',
+        top: top + 'px'
+    });
+    $preview.find('.ep-color').css('background', color || '#808080');
+    $preview.find('.ep-value').text(color || '---');
 }
 
 function resetWindowPosition() {
@@ -177,12 +1078,6 @@ function showDeraToast(type) {
 function highlightText(text, query) {
     if (!query) return text;
     return text.replace(new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'), '<mark>$1</mark>');
-}
-
-function getEventPosition(e) {
-    if (e.touches?.length > 0) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    if (e.changedTouches?.length > 0) return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
-    return { x: e.clientX, y: e.clientY };
 }
 
 function constrainPosition(x, y, width, height) {
@@ -362,7 +1257,6 @@ function extractAllChatData() {
 
 function extractTagFromChatHistory(chat, tagName) {
     if (!chat) return '';
-    // 使用负向后行断言，排除反引号包裹的标签
     const regex = new RegExp(`(?<!\`)<${tagName}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tagName}>(?!\`)`, 'i');
     
     for (let i = chat.length - 1; i >= 0; i--) {
@@ -398,7 +1292,6 @@ function extractFileFromContentTag(chat) {
         }
         for (const src of sources) {
             if (!src) continue;
-            // 使用负向后行断言，排除反引号包裹的标签
             const contentPattern = /(?<!`)<content(?:\s[^>]*)?>([\\s\\S]*?)<\/content>(?!`)/gi;
             let contentMatch;
             while ((contentMatch = contentPattern.exec(src)) !== null) {
@@ -412,22 +1305,9 @@ function extractFileFromContentTag(chat) {
 }
 
 function injectDataIntoTemplate(html, rawMessage, fullChatData) {
-    // 不再注入数据覆盖模板自带的函数
-    // 模板（如回响）有自己的 getSTChat/extractTagFromChat 函数
-    // 我们只需要确保 $1 占位符被正确替换
-    
-    // 如果模板没有自己的数据获取逻辑，我们提供一个后备方案
-    // 通过 postMessage 让 iframe 可以请求数据
-    
-    const chatDataJSON = JSON.stringify(fullChatData.chat || []);
-    const tagsDataJSON = JSON.stringify(fullChatData.tags || {});
-    
-    // 使用更安全的方式注入数据：通过 window.name 传递
-    // window.name 可以安全存储大量数据且不会被 HTML 解析破坏
     const injectionScript = `
 <script>
 (function() {
-    // 尝试从 window.name 读取数据（如果有的话）
     try {
         if (window.name && window.name.startsWith('TAMAKO_DATA:')) {
             var dataStr = window.name.substring(12);
@@ -440,17 +1320,10 @@ function injectDataIntoTemplate(html, rawMessage, fullChatData) {
         console.log('[玉子市场] 数据解析跳过，使用模板自带函数');
     }
     
-    // 保存原有的函数引用（如果存在）
-    var _originalGetSTChat = window.getSTChat;
-    var _originalExtractTagFromChat = window.extractTagFromChat;
-    var _originalExtractFileFromContent = window.extractFileFromContent;
-    
-    // 只在模板没有定义这些函数时提供后备
     window.getSTChat = window.getSTChat || function() {
         if (window.TAMAKO_INJECTED_CHAT && window.TAMAKO_INJECTED_CHAT.length > 0) {
             return window.TAMAKO_INJECTED_CHAT;
         }
-        // 尝试访问父窗口
         try {
             if (window.parent && window.parent.SillyTavern) {
                 var ctx = window.parent.SillyTavern.getContext();
@@ -471,13 +1344,11 @@ function injectDataIntoTemplate(html, rawMessage, fullChatData) {
     
     let modifiedHtml = html;
     
-    // 在 </head> 前或 <body> 前注入脚本
     if (modifiedHtml.includes('</head>')) {
         modifiedHtml = modifiedHtml.replace('</head>', injectionScript + '</head>');
     } else if (modifiedHtml.includes('<body')) {
         modifiedHtml = modifiedHtml.replace(/<body/i, injectionScript + '<body');
     } else {
-        // 如果没有标准结构，在开头添加
         modifiedHtml = injectionScript + modifiedHtml;
     }
     
@@ -488,10 +1359,7 @@ function renderWithBeautifier($container, rawMessage, templateData) {
     try {
         let html = templateData.html;
         
-        // 首先替换 $1 占位符（这是最重要的）
         if (html.includes('$1')) {
-            // 对 rawMessage 进行 HTML 实体编码，防止破坏 HTML 结构
-            // 但保留在 textarea 中的原始格式
             html = html.replace(/\$1/g, function() {
                 return rawMessage || '';
             });
@@ -499,7 +1367,6 @@ function renderWithBeautifier($container, rawMessage, templateData) {
         
         const fullChatData = extractAllChatData();
         
-        // 注入辅助脚本（不覆盖模板自带函数）
         html = injectDataIntoTemplate(html, rawMessage, fullChatData);
         
         $container.css('position', 'relative');
@@ -531,7 +1398,6 @@ function renderWithBeautifier($container, rawMessage, templateData) {
         $iframe.css('opacity', '0');
         $loading.show();
         
-        // 清除之前的 Blob URL
         if (iframe._blobUrl) {
             URL.revokeObjectURL(iframe._blobUrl);
             iframe._blobUrl = null;
@@ -557,19 +1423,16 @@ function renderWithBeautifier($container, rawMessage, templateData) {
             }
         }, 3000);
         
-        // 通过 window.name 传递数据（更安全的方式）
         const dataPayload = JSON.stringify({
             chat: fullChatData.chat,
             tags: fullChatData.tags,
             raw: rawMessage
         });
         
-        // 使用 Blob URL
         const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
         const blobUrl = URL.createObjectURL(blob);
         iframe._blobUrl = blobUrl;
         
-        // 设置 name 属性传递数据
         iframe.name = 'TAMAKO_DATA:' + dataPayload;
         iframe.src = blobUrl;
         
@@ -587,7 +1450,7 @@ function createWindow() {
 
     const themeOptions = Object.entries(themes).map(([key, theme]) => 
         `<option value="${key}">${theme.name}</option>`
-    ).join('');
+    ).join('') + '<option value="custom">✨ 自定义</option>';
     const mobileClass = isMobileDevice() ? 'tamako-mobile' : '';
     const settings = getSettings();
     const savedTheme = settings.theme || 'tamako';
@@ -606,6 +1469,7 @@ function createWindow() {
                     <button class="tamako-btn scan" title="扫描消息">${ICONS.search}</button>
                     <button class="tamako-btn delete-mode" title="整理商品">${ICONS.broom}</button>
                     <button class="tamako-btn theme-toggle" title="切换主题">${ICONS.palette}</button>
+                    <button class="tamako-btn theme-edit" title="编辑主题">${ICONS.edit}</button>
                     <button class="tamako-btn close" title="打烊">${ICONS.close}</button>
                 </div>
             </div>
@@ -646,19 +1510,22 @@ function createWindow() {
     
     const $window = $('#tamako-market-window');
     const defaultPos = getDefaultWindowPosition();
-    const theme = themes[savedTheme] || themes.tamako;
     
     $window.css({
         left: (settings.windowX ?? defaultPos.x) + 'px',
         top: (settings.windowY ?? defaultPos.y) + 'px',
         width: (settings.windowWidth || defaultPos.width) + 'px',
-        height: (settings.windowHeight || defaultPos.height) + 'px',
-        '--theme-primary': theme.primary,
-        '--theme-secondary': theme.secondary
+        height: (settings.windowHeight || defaultPos.height) + 'px'
     });
     
     $('#tamako-theme-selector').val(savedTheme);
     currentTheme = savedTheme;
+    
+    if (savedTheme === 'custom' && settings.customTheme) {
+        applyTheme('custom', settings.customTheme);
+    } else {
+        applyTheme(savedTheme);
+    }
     
     initDraggable($window);
     initResizable($window);
@@ -667,119 +1534,150 @@ function createWindow() {
     return $window;
 }
 
+// ===== 使用 Pointer Events 重写拖拽 =====
+
 function initDraggable($window) {
     const header = $window.find('.tamako-header')[0];
-    let isDragging = false;
-    let offsetX, offsetY;
     
     header.addEventListener('contextmenu', e => e.preventDefault());
     
-    function startDrag(e) {
+    function onPointerDown(e) {
         if (e.target.closest('.tamako-btn, .tamako-controls')) return;
-        isDragging = true;
-        const pos = getEventPosition(e);
+        
+        dragState.isDragging = true;
+        dragState.pointerId = e.pointerId;
+        
         const rect = $window[0].getBoundingClientRect();
-        offsetX = pos.x - rect.left;
-        offsetY = pos.y - rect.top;
+        dragState.offsetX = e.clientX - rect.left;
+        dragState.offsetY = e.clientY - rect.top;
+        
+        header.setPointerCapture(e.pointerId);
         $window.addClass('dragging');
         hideBeautifierFrame($window);
+        
         e.preventDefault();
     }
     
-    function moveDrag(e) {
-        if (!isDragging) return;
-        const pos = getEventPosition(e);
-        const constrained = constrainPosition(pos.x - offsetX, pos.y - offsetY, $window[0].offsetWidth, $window[0].offsetHeight);
+    function onPointerMove(e) {
+        if (!dragState.isDragging || e.pointerId !== dragState.pointerId) return;
+        
+        const constrained = constrainPosition(
+            e.clientX - dragState.offsetX,
+            e.clientY - dragState.offsetY,
+            $window[0].offsetWidth,
+            $window[0].offsetHeight
+        );
+        
         $window[0].style.left = constrained.x + 'px';
         $window[0].style.top = constrained.y + 'px';
+        
         e.preventDefault();
     }
     
-    function endDrag() {
-        if (isDragging) {
-            isDragging = false;
-            $window.removeClass('dragging');
-            showBeautifierFrame($window);
-            saveSetting('windowX', parseInt($window.css('left')));
-            saveSetting('windowY', parseInt($window.css('top')));
-        }
+    function onPointerUp(e) {
+        if (!dragState.isDragging || e.pointerId !== dragState.pointerId) return;
+        
+        dragState.isDragging = false;
+        
+        try {
+            header.releasePointerCapture(e.pointerId);
+        } catch (err) {}
+        
+        $window.removeClass('dragging');
+        showBeautifierFrame($window);
+        
+        saveSetting('windowX', parseInt($window.css('left')));
+        saveSetting('windowY', parseInt($window.css('top')));
+        
+        dragState.pointerId = null;
     }
     
-    header.addEventListener('mousedown', startDrag);
-    header.addEventListener('touchstart', startDrag, { passive: false });
-    document.addEventListener('mousemove', moveDrag);
-    document.addEventListener('touchmove', moveDrag, { passive: false });
-    document.addEventListener('mouseup', endDrag);
-    document.addEventListener('touchend', endDrag);
-    document.addEventListener('touchcancel', endDrag);
+    header.addEventListener('pointerdown', onPointerDown);
+    header.addEventListener('pointermove', onPointerMove);
+    header.addEventListener('pointerup', onPointerUp);
+    header.addEventListener('pointercancel', onPointerUp);
 }
+
+// ===== 使用 Pointer Events 重写缩放 =====
 
 function initResizable($window) {
     const minWidth = isMobileDevice() ? 260 : 280;
     const minHeight = isMobileDevice() ? 200 : 150;
     
     $window.find('.tamako-resize').each(function() {
-        this.addEventListener('contextmenu', e => e.preventDefault());
-    });
-    
-    function startResize(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        const dir = this.getAttribute('data-dir');
-        const pos = getEventPosition(e);
-        const rect = $window[0].getBoundingClientRect();
-        resizeState = {
-            isResizing: true,
-            handle: dir,
-            startX: pos.x,
-            startY: pos.y,
-            startWidth: rect.width,
-            startHeight: rect.height
-        };
-        hideBeautifierFrame($window);
-        $window.addClass('resizing');
-        document.body.style.cursor = dir === 'se' ? 'nwse-resize' : (dir === 's' ? 'ns-resize' : 'ew-resize');
-        document.body.style.userSelect = 'none';
-    }
-    
-    function moveResize(e) {
-        if (!resizeState.isResizing) return;
-        e.preventDefault();
-        const pos = getEventPosition(e);
-        const deltaX = pos.x - resizeState.startX;
-        const deltaY = pos.y - resizeState.startY;
-        if (resizeState.handle.includes('e') || resizeState.handle === 'se') {
-            $window[0].style.width = Math.max(minWidth, resizeState.startWidth + deltaX) + 'px';
+        const handle = this;
+        
+        handle.addEventListener('contextmenu', e => e.preventDefault());
+        
+        function onPointerDown(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const dir = handle.getAttribute('data-dir');
+            const rect = $window[0].getBoundingClientRect();
+            
+            resizeState = {
+                isResizing: true,
+                handle: dir,
+                startX: e.clientX,
+                startY: e.clientY,
+                startWidth: rect.width,
+                startHeight: rect.height,
+                element: handle,
+                pointerId: e.pointerId
+            };
+            
+            handle.setPointerCapture(e.pointerId);
+            
+            hideBeautifierFrame($window);
+            $window.addClass('resizing');
+            document.body.classList.add('tamako-resizing');
         }
-        if (resizeState.handle.includes('s') || resizeState.handle === 'se') {
-            $window[0].style.height = Math.max(minHeight, resizeState.startHeight + deltaY) + 'px';
+        
+        function onPointerMove(e) {
+            if (!resizeState.isResizing || e.pointerId !== resizeState.pointerId) return;
+            
+            e.preventDefault();
+            
+            const deltaX = e.clientX - resizeState.startX;
+            const deltaY = e.clientY - resizeState.startY;
+            
+            if (resizeState.handle.includes('e') || resizeState.handle === 'se') {
+                const newWidth = Math.max(minWidth, resizeState.startWidth + deltaX);
+                $window[0].style.width = newWidth + 'px';
+            }
+            if (resizeState.handle.includes('s') || resizeState.handle === 'se') {
+                const newHeight = Math.max(minHeight, resizeState.startHeight + deltaY);
+                $window[0].style.height = newHeight + 'px';
+            }
         }
-    }
-    
-    function endResize() {
-        if (!resizeState.isResizing) return;
-        resizeState.isResizing = false;
-        resizeState.handle = '';
-        $window.removeClass('resizing');
-        document.body.style.cursor = '';
-        document.body.style.userSelect = '';
-        showBeautifierFrame($window);
-        saveSetting('windowWidth', $window[0].offsetWidth);
-        saveSetting('windowHeight', $window[0].offsetHeight);
-    }
-    
-    $window.find('.tamako-resize').each(function() {
-        this.addEventListener('mousedown', startResize);
-        this.addEventListener('touchstart', startResize, { passive: false });
+        
+        function onPointerUp(e) {
+            if (!resizeState.isResizing || e.pointerId !== resizeState.pointerId) return;
+            
+            resizeState.isResizing = false;
+            
+            try {
+                handle.releasePointerCapture(e.pointerId);
+            } catch (err) {}
+            
+            $window.removeClass('resizing');
+            document.body.classList.remove('tamako-resizing');
+            showBeautifierFrame($window);
+            
+            saveSetting('windowWidth', $window[0].offsetWidth);
+            saveSetting('windowHeight', $window[0].offsetHeight);
+            
+            resizeState.handle = '';
+            resizeState.element = null;
+            resizeState.pointerId = null;
+        }
+        
+        handle.addEventListener('pointerdown', onPointerDown);
+        handle.addEventListener('pointermove', onPointerMove);
+        handle.addEventListener('pointerup', onPointerUp);
+        handle.addEventListener('pointercancel', onPointerUp);
     });
-    
-    document.addEventListener('mousemove', moveResize, true);
-    document.addEventListener('touchmove', moveResize, { passive: false, capture: true });
-    document.addEventListener('mouseup', endResize, true);
-    document.addEventListener('touchend', endResize, true);
-    document.addEventListener('touchcancel', endResize, true);
-    document.addEventListener('mouseleave', endResize);
-    window.addEventListener('blur', endResize);
 }
 
 function bindWindowEvents($window) {
@@ -803,7 +1701,21 @@ function bindWindowEvents($window) {
     });
     
     $window.find('.tamako-btn.theme-toggle').on('click', () => $('.tamako-theme-panel').slideToggle(200));
-    $window.find('#tamako-theme-selector').on('change', function() { applyTheme(this.value); $('.tamako-theme-panel').slideUp(200); });
+    $window.find('#tamako-theme-selector').on('change', function() {
+        const themeName = this.value;
+        if (themeName === 'custom') {
+            const settings = getSettings();
+            if (settings.customTheme) {
+                applyTheme('custom', settings.customTheme);
+            } else {
+                openThemeEditor();
+            }
+        } else {
+            applyTheme(themeName);
+        }
+        $('.tamako-theme-panel').slideUp(200);
+    });
+    $window.find('.tamako-btn.theme-edit').on('click', () => openThemeEditor());
     $window.find('.tamako-btn.delete-mode').on('click', () => toggleDeleteMode());
     $window.find('#tamako-select-all').on('change', function() { $('.tamako-history-item .tamako-checkbox').prop('checked', this.checked); });
     $window.find('.tamako-delete-confirm').on('click', () => deleteSelectedItems());
@@ -870,7 +1782,6 @@ function createToggleButton() {
     const settings = getSettings();
     const isMobile = isMobileDevice();
     const savedTheme = settings.theme || 'tamako';
-    const theme = themes[savedTheme] || themes.tamako;
     
     const btn = document.createElement('div');
     btn.id = 'tamako-market-toggle';
@@ -886,64 +1797,104 @@ function createToggleButton() {
         left: (settings.toggleX ?? defaultPos.x) + 'px', 
         top: (settings.toggleY ?? defaultPos.y) + 'px', 
         right: 'auto', 
-        bottom: 'auto',
-        '--theme-primary': theme.primary,
-        '--theme-secondary': theme.secondary
+        bottom: 'auto'
     });
+    
+    if (savedTheme === 'custom' && settings.customTheme) {
+        $btn.css({
+            '--theme-primary': settings.customTheme.colors.primary,
+            '--theme-secondary': settings.customTheme.colors.secondary
+        });
+    } else {
+        const theme = themes[savedTheme] || themes.tamako;
+        $btn.css({
+            '--theme-primary': theme.primary,
+            '--theme-secondary': theme.secondary
+        });
+    }
     
     initToggleDraggable($btn);
 }
 
+// ===== 使用 Pointer Events 重写按钮拖拽 =====
+
 function initToggleDraggable($toggle) {
-    let isDragging = false, hasMoved = false, offsetX, offsetY, startX, startY, startTime;
+    const btn = $toggle[0];
+    let hasMoved = false;
+    let startX, startY, startTime;
+    let offsetX, offsetY;
+    let pointerId = null;
     const DRAG_THRESHOLD = 5;
     
-    $toggle[0].addEventListener('contextmenu', e => e.preventDefault());
+    btn.addEventListener('contextmenu', e => e.preventDefault());
     
-    function startDrag(e) {
+    function onPointerDown(e) {
         startTime = Date.now();
         hasMoved = false;
-        const pos = getEventPosition(e);
-        const rect = $toggle[0].getBoundingClientRect();
-        offsetX = pos.x - rect.left;
-        offsetY = pos.y - rect.top;
-        startX = pos.x;
-        startY = pos.y;
+        pointerId = e.pointerId;
+        
+        const rect = btn.getBoundingClientRect();
+        offsetX = e.clientX - rect.left;
+        offsetY = e.clientY - rect.top;
+        startX = e.clientX;
+        startY = e.clientY;
+        
+        btn.setPointerCapture(e.pointerId);
         $toggle.addClass('dragging');
+        
         e.preventDefault();
     }
     
-    function moveDrag(e) {
-        if (!$toggle.hasClass('dragging')) return;
-        const pos = getEventPosition(e);
-        if (Math.abs(pos.x - startX) > DRAG_THRESHOLD || Math.abs(pos.y - startY) > DRAG_THRESHOLD) {
-            isDragging = true;
+    function onPointerMove(e) {
+        if (e.pointerId !== pointerId) return;
+        
+        if (Math.abs(e.clientX - startX) > DRAG_THRESHOLD || Math.abs(e.clientY - startY) > DRAG_THRESHOLD) {
             hasMoved = true;
         }
-        if (!isDragging) return;
-        const constrained = constrainPosition(pos.x - offsetX, pos.y - offsetY, $toggle[0].offsetWidth, $toggle[0].offsetHeight);
-        $toggle.css({ left: constrained.x + 'px', top: constrained.y + 'px' });
+        
+        if (!hasMoved) return;
+        
+        const constrained = constrainPosition(
+            e.clientX - offsetX,
+            e.clientY - offsetY,
+            btn.offsetWidth,
+            btn.offsetHeight
+        );
+        
+        $toggle.css({
+            left: constrained.x + 'px',
+            top: constrained.y + 'px'
+        });
+        
         e.preventDefault();
     }
     
-    function endDrag() {
+    function onPointerUp(e) {
+        if (e.pointerId !== pointerId) return;
+        
+        try {
+            btn.releasePointerCapture(e.pointerId);
+        } catch (err) {}
+        
         $toggle.removeClass('dragging');
-        isDragging = false;
+        
         if (hasMoved) {
             saveSetting('toggleX', parseInt($toggle.css('left')));
             saveSetting('toggleY', parseInt($toggle.css('top')));
         }
-        if (!hasMoved && Date.now() - startTime < 300) toggleWindow();
+        
+        if (!hasMoved && Date.now() - startTime < 300) {
+            toggleWindow();
+        }
+        
         hasMoved = false;
+        pointerId = null;
     }
     
-    $toggle[0].addEventListener('mousedown', startDrag);
-    $toggle[0].addEventListener('touchstart', startDrag, { passive: false });
-    document.addEventListener('mousemove', moveDrag);
-    document.addEventListener('touchmove', moveDrag, { passive: false });
-    document.addEventListener('mouseup', endDrag);
-    document.addEventListener('touchend', endDrag);
-    document.addEventListener('touchcancel', endDrag);
+    btn.addEventListener('pointerdown', onPointerDown);
+    btn.addEventListener('pointermove', onPointerMove);
+    btn.addEventListener('pointerup', onPointerUp);
+    btn.addEventListener('pointercancel', onPointerUp);
 }
 
 function toggleWindow(show) {
@@ -962,6 +1913,7 @@ function toggleWindow(show) {
     $window.toggleClass('visible', show);
     $button.toggleClass('active', show);
     if (!show && deleteMode) toggleDeleteMode(false);
+    if (!show && isThemeEditorOpen) closeThemeEditor(false);
 }
 
 function updateCurrentContent(content, rawMessage) {
@@ -1049,18 +2001,9 @@ function updateHistoryList() {
     updateCaptureCount();
 }
 
-/**
- * 提取标签内容 - 核心函数
- * 使用负向后行断言排除反引号包裹的标签（如 `<recall>`）
- * @param {string} message - 消息内容
- * @param {string} tagName - 标签名
- * @returns {string[]} - 匹配到的标签内容数组
- */
 function extractTagContent(message, tagName) {
     const matches = [];
     let match;
-    // 使用负向后行断言 (?<!`) 确保 < 前面不是反引号
-    // 使用负向前行断言 (?!`) 确保 > 后面不是反引号（针对闭合标签）
     const regex = new RegExp(`(?<!\`)<${tagName}[^>]*>([\\s\\S]*?)<\\/${tagName}>(?!\`)`, 'gi');
     while ((match = regex.exec(message)) !== null) matches.push(match[0]);
     return matches;
@@ -1556,7 +2499,7 @@ function initEventListeners() {
             setTimeout(createSettingsPanel, 2000);
             initEventListeners();
             setTimeout(() => scanAllMessages(), 1000);
-            console.log('[玉子市场] 开店啦！v2.4.7');
+            console.log('[玉子市场] 开店啦！v2.5.3');
         } catch (e) { console.error('[玉子市场] 初始化错误:', e); }
     };
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', onReady);
