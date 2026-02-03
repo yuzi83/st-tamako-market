@@ -1,9 +1,9 @@
 /* style.css */
 /**
  * 玉子市场 - 样式表
- * @version 2.4.7
+ * @version 2.5.3
  * CSS变量驱动主题系统
- * 修复：排除反引号包裹的标签名，避免错误匹配
+ * 修改：删除背景渐变设置、增加字体预览
  */
 
 /* ===== 主题变量定义 ===== */
@@ -17,6 +17,9 @@
     --tamako-text: #333333;
     --tamako-text-muted: #888888;
     --tamako-border: rgba(0, 0, 0, 0.1);
+    --tamako-radius: 16px;
+    --tamako-opacity: 1;
+    --tamako-font: 'Segoe UI', 'Microsoft YaHei', sans-serif;
     
     /* 兼容旧代码 */
     --theme-primary: var(--tamako-primary);
@@ -54,6 +57,10 @@
     --theme-secondary: var(--tamako-secondary);
 }
 
+.tamako-window.theme-custom {
+    /* 自定义主题通过 JS 动态设置 CSS 变量 */
+}
+
 /* ===== 主窗口 ===== */
 .tamako-window {
     position: fixed;
@@ -63,7 +70,7 @@
     height: 450px;
     background: var(--tamako-bg);
     border: 2px solid var(--tamako-primary);
-    border-radius: 16px;
+    border-radius: var(--tamako-radius);
     box-shadow: 0 8px 32px rgba(255, 182, 193, 0.4);
     z-index: 9990;
     display: none;
@@ -71,7 +78,7 @@
     overflow: hidden;
     min-width: 280px;
     min-height: 150px;
-    font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+    font-family: var(--tamako-font);
     touch-action: none;
     user-select: none;
 }
@@ -80,11 +87,15 @@
 .tamako-window.dragging { opacity: 0.9; box-shadow: 0 12px 48px rgba(255, 182, 193, 0.6); }
 .tamako-window.resizing { opacity: 0.95; }
 
-/* 缩放时全局遮罩 */
-body.tamako-resizing { cursor: nwse-resize !important; }
-body.tamako-resizing * { cursor: nwse-resize !important; pointer-events: none !important; }
-body.tamako-resizing .tamako-window,
-body.tamako-resizing .tamako-resize { pointer-events: auto !important; }
+/* 缩放时全局样式 */
+body.tamako-resizing { 
+    cursor: nwse-resize !important; 
+    user-select: none !important;
+}
+body.tamako-resizing * { 
+    cursor: nwse-resize !important; 
+    user-select: none !important;
+}
 
 /* ===== 统一滚动条样式 ===== */
 .tamako-window ::-webkit-scrollbar {
@@ -107,7 +118,11 @@ body.tamako-resizing .tamako-resize { pointer-events: auto !important; }
 }
 
 /* ===== 调整大小手柄 ===== */
-.tamako-resize { position: absolute; z-index: 10; }
+.tamako-resize { 
+    position: absolute; 
+    z-index: 10;
+    touch-action: none;
+}
 .tamako-resize-e { right: -4px; top: 10%; width: 12px; height: 80%; cursor: ew-resize; }
 .tamako-resize-s { bottom: -4px; left: 10%; width: 80%; height: 12px; cursor: ns-resize; }
 .tamako-resize-se { right: -4px; bottom: -4px; width: 24px; height: 24px; cursor: nwse-resize; }
@@ -135,6 +150,7 @@ body.tamako-resizing .tamako-resize { pointer-events: auto !important; }
     cursor: move;
     user-select: none;
     flex-shrink: 0;
+    touch-action: none;
 }
 
 .tamako-drag-handle { flex: 1; cursor: move; }
@@ -495,7 +511,8 @@ body.tamako-resizing .tamako-resize { pointer-events: auto !important; }
 .tamako-window.minimized .tamako-tabs,
 .tamako-window.minimized .tamako-delete-bar,
 .tamako-window.minimized .tamako-theme-panel,
-.tamako-window.minimized .tamako-resize { display: none !important; }
+.tamako-window.minimized .tamako-resize,
+.tamako-window.minimized .tamako-editor-container { display: none !important; }
 .tamako-window.minimized { height: auto !important; min-height: auto; }
 
 /* ===== 工具栏按钮 ===== */
@@ -521,6 +538,7 @@ body.tamako-resizing .tamako-resize { pointer-events: auto !important; }
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
     user-select: none;
+    touch-action: none;
 }
 
 /* 按钮的主题变体 */
@@ -544,6 +562,10 @@ body.tamako-resizing .tamako-resize { pointer-events: auto !important; }
     --theme-secondary: #6A5ACD;
 }
 
+.tamako-toggle.theme-custom {
+    /* 通过 JS 动态设置 */
+}
+
 .tamako-toggle:hover { transform: scale(1.05); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2); }
 .tamako-toggle:active,
 .tamako-toggle.dragging { cursor: grabbing; }
@@ -557,6 +579,524 @@ body.tamako-resizing .tamako-resize { pointer-events: auto !important; }
 @keyframes tamako-bounce {
     from { transform: translateY(0); }
     to { transform: translateY(-3px); }
+}
+
+/* ===== 主题编辑器 ===== */
+.tamako-editor-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--tamako-surface);
+}
+
+.tamako-theme-editor {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.tamako-editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: var(--tamako-surface-alt);
+    border-bottom: 2px solid var(--tamako-primary);
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--tamako-text);
+}
+
+.tamako-editor-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.tamako-editor-btn {
+    background: rgba(0, 0, 0, 0.05);
+    border: none;
+    padding: 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    color: var(--tamako-text);
+}
+
+.tamako-editor-btn svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+}
+
+.tamako-editor-btn:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.tamako-editor-btn.save:hover {
+    background: var(--tamako-primary);
+    color: #fff;
+}
+
+.tamako-editor-btn.close:hover {
+    background: #FF6B6B;
+    color: #fff;
+}
+
+.tamako-editor-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+}
+
+.tamako-editor-section {
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--tamako-border);
+}
+
+.tamako-editor-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.tamako-section-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--tamako-text-muted);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.tamako-editor-select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 2px solid var(--tamako-border);
+    border-radius: 8px;
+    background: var(--tamako-surface);
+    color: var(--tamako-text);
+    font-size: 13px;
+    cursor: pointer;
+    outline: none;
+}
+
+.tamako-editor-select:focus {
+    border-color: var(--tamako-primary);
+}
+
+/* 字体预览 */
+.tamako-font-preview {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: var(--tamako-surface-alt);
+    border: 2px dashed var(--tamako-border);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--tamako-text);
+    text-align: center;
+}
+
+/* 颜色选择行 */
+.tamako-color-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.tamako-color-row:last-child {
+    margin-bottom: 0;
+}
+
+.tamako-color-row > label {
+    font-size: 12px;
+    color: var(--tamako-text);
+    flex-shrink: 0;
+    width: 70px;
+}
+
+.tamako-color-input-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    justify-content: flex-end;
+}
+
+.tamako-color-preview {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 2px solid var(--tamako-border);
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.tamako-color-preview:hover {
+    transform: scale(1.1);
+    border-color: var(--tamako-primary);
+}
+
+.tamako-color-hex {
+    width: 80px;
+    padding: 6px 8px;
+    border: 2px solid var(--tamako-border);
+    border-radius: 6px;
+    background: var(--tamako-surface);
+    color: var(--tamako-text);
+    font-size: 12px;
+    font-family: monospace;
+    text-align: center;
+    outline: none;
+}
+
+.tamako-color-hex:focus {
+    border-color: var(--tamako-primary);
+}
+
+.tamako-eyedropper-btn {
+    background: rgba(0, 0, 0, 0.05);
+    border: none;
+    padding: 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    color: var(--tamako-text-muted);
+}
+
+.tamako-eyedropper-btn svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+}
+
+.tamako-eyedropper-btn:hover {
+    background: var(--tamako-primary);
+    color: #fff;
+}
+
+/* 滑块行 */
+.tamako-slider-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.tamako-slider-row:last-child {
+    margin-bottom: 0;
+}
+
+.tamako-slider-row > label {
+    font-size: 12px;
+    color: var(--tamako-text);
+    width: 60px;
+    flex-shrink: 0;
+}
+
+.tamako-slider-row input[type="range"] {
+    flex: 1;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--tamako-border);
+    border-radius: 3px;
+    outline: none;
+}
+
+.tamako-slider-row input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: linear-gradient(135deg, var(--tamako-primary), var(--tamako-secondary));
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.tamako-slider-row input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: linear-gradient(135deg, var(--tamako-primary), var(--tamako-secondary));
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.tamako-slider-value {
+    font-size: 11px;
+    color: var(--tamako-text-muted);
+    width: 40px;
+    text-align: right;
+    font-family: monospace;
+}
+
+/* ===== 调色盘弹窗 ===== */
+.tamako-color-picker-popup {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--tamako-surface);
+    border: 2px solid var(--tamako-primary);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    overflow: hidden;
+    width: 240px;
+}
+
+.tamako-picker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: linear-gradient(135deg, var(--tamako-primary), var(--tamako-secondary));
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.tamako-picker-close {
+    background: rgba(255, 255, 255, 0.3);
+    border: none;
+    padding: 4px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+}
+
+.tamako-picker-close svg {
+    width: 12px;
+    height: 12px;
+    fill: currentColor;
+}
+
+.tamako-picker-close:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.tamako-picker-body {
+    padding: 12px;
+}
+
+/* 色相滑块 */
+.tamako-hue-slider {
+    margin-bottom: 12px;
+}
+
+.tamako-hue-slider input[type="range"] {
+    width: 100%;
+    height: 12px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: linear-gradient(to right, 
+        hsl(0, 100%, 50%),
+        hsl(60, 100%, 50%),
+        hsl(120, 100%, 50%),
+        hsl(180, 100%, 50%),
+        hsl(240, 100%, 50%),
+        hsl(300, 100%, 50%),
+        hsl(360, 100%, 50%)
+    );
+    border-radius: 6px;
+    outline: none;
+}
+
+.tamako-hue-slider input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid #333;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* 饱和度/明度画布 */
+.tamako-saturation-lightness {
+    position: relative;
+    width: 100%;
+    height: 150px;
+    margin-bottom: 12px;
+    border-radius: 8px;
+    overflow: hidden;
+    touch-action: none;
+}
+
+.tamako-saturation-lightness canvas {
+    width: 100%;
+    height: 100%;
+    cursor: crosshair;
+}
+
+.tamako-sl-cursor {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+}
+
+/* 预览区 */
+.tamako-picker-preview {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.tamako-preview-color {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    border: 2px solid var(--tamako-border);
+}
+
+.tamako-preview-hex {
+    flex: 1;
+    padding: 8px 10px;
+    border: 2px solid var(--tamako-border);
+    border-radius: 8px;
+    background: var(--tamako-surface);
+    color: var(--tamako-text);
+    font-size: 14px;
+    font-family: monospace;
+    text-align: center;
+    outline: none;
+}
+
+.tamako-preview-hex:focus {
+    border-color: var(--tamako-primary);
+}
+
+/* 操作按钮 */
+.tamako-picker-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.tamako-picker-eyedropper,
+.tamako-picker-confirm {
+    flex: 1;
+    padding: 8px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    transition: all 0.2s;
+}
+
+.tamako-picker-eyedropper {
+    background: var(--tamako-surface-alt);
+    color: var(--tamako-text);
+    border: 2px solid var(--tamako-border);
+}
+
+.tamako-picker-eyedropper:hover {
+    border-color: var(--tamako-primary);
+    color: var(--tamako-primary);
+}
+
+.tamako-picker-eyedropper svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+}
+
+.tamako-picker-confirm {
+    background: linear-gradient(135deg, var(--tamako-primary), var(--tamako-secondary));
+    color: #fff;
+}
+
+.tamako-picker-confirm:hover {
+    filter: brightness(1.1);
+}
+
+/* ===== 吸管模式（仅PC端） ===== */
+body.tamako-eyedropper-mode {
+    cursor: crosshair !important;
+}
+
+body.tamako-eyedropper-mode * {
+    cursor: crosshair !important;
+}
+
+.tamako-eyedropper-indicator {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #FFB6C1 0%, #DDA0DD 100%);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 100000;
+    pointer-events: none;
+    animation: tamako-fade-in 0.3s ease;
+}
+
+/* 吸管预览 */
+.tamako-eyedropper-preview {
+    position: fixed;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.85);
+    padding: 8px 12px;
+    border-radius: 8px;
+    pointer-events: none;
+    z-index: 100001;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.tamako-eyedropper-preview .ep-color {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 2px solid #fff;
+    flex-shrink: 0;
+}
+
+.tamako-eyedropper-preview .ep-value {
+    color: #fff;
+    font-size: 13px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+@keyframes tamako-fade-in {
+    from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
 /* ===== 移动端适配 ===== */
