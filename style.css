@@ -1373,3 +1373,497 @@ body.tamako-eyedropper-mode * {
         font-size: 10px;
     }
 }
+/* ===== 按钮编辑器样式 ===== */
+
+.tamako-button-shape-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.tamako-button-shape-row > label {
+    font-size: 12px;
+    color: var(--tamako-text);
+    width: 60px;
+    flex-shrink: 0;
+}
+
+.tamako-button-shape-row .tamako-editor-select {
+    flex: 1;
+}
+
+.tamako-button-image-section {
+    margin-top: 12px;
+}
+
+.tamako-button-image-section > label {
+    display: block;
+    font-size: 12px;
+    color: var(--tamako-text);
+    margin-bottom: 6px;
+}
+
+.tamako-button-image-drop {
+    border: 2px dashed var(--tamako-border);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--tamako-surface-alt);
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tamako-button-image-drop:hover,
+.tamako-button-image-drop.dragover {
+    border-color: var(--tamako-primary);
+    background: rgba(255, 182, 193, 0.1);
+}
+
+.tamako-button-image-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    color: var(--tamako-text-muted);
+}
+
+.tamako-button-image-placeholder svg {
+    width: 32px;
+    height: 32px;
+    opacity: 0.5;
+}
+
+.tamako-button-image-placeholder span {
+    font-size: 12px;
+}
+
+.tamako-button-image-placeholder .tamako-hint {
+    font-size: 10px;
+    opacity: 0.6;
+}
+
+.tamako-button-image-preview {
+    max-width: 100%;
+    max-height: 100px;
+    border-radius: 6px;
+    object-fit: contain;
+}
+
+.tamako-btn-remove-image {
+    display: block;
+    width: 100%;
+    margin-top: 8px;
+    padding: 6px 12px;
+    background: rgba(255, 100, 100, 0.1);
+    border: 1px solid rgba(255, 100, 100, 0.3);
+    border-radius: 6px;
+    color: #ff6b6b;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tamako-btn-remove-image:hover {
+    background: rgba(255, 100, 100, 0.2);
+    border-color: #ff6b6b;
+}
+
+.tamako-button-preview-container {
+    margin-top: 12px;
+}
+
+.tamako-button-preview-container > label {
+    display: block;
+    font-size: 12px;
+    color: var(--tamako-text);
+    margin-bottom: 6px;
+}
+
+.tamako-button-live-preview {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    cursor: default;
+}
+
+/* ===== 切换按钮变体 ===== */
+
+.tamako-toggle.tamako-toggle-circle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tamako-toggle.tamako-toggle-has-image .tamako-toggle-icon,
+.tamako-toggle.tamako-toggle-has-image .tamako-toggle-text {
+    display: none !important;
+}
+
+.tamako-toggle.tamako-toggle-circle .tamako-toggle-icon {
+    display: none;
+}
+
+.tamako-toggle.tamako-toggle-circle .tamako-toggle-text {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+/* ===== 按钮编辑器样式 ===== */
+
+.tamako-button-shape-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.tamako-button-shape-row > label {
+    font-size: 12px;
+    color: var(--tamako-text);
+    width: 60px;
+    flex-shrink: 0;
+}
+
+.tamako-button-shape-row .tamako-editor-select {
+    flex: 1;
+}
+
+.tamako-button-image-section {
+    margin-top: 12px;
+}
+
+.tamako-button-image-section > label {
+    display: block;
+    font-size: 12px;
+    color: var(--tamako-text);
+    margin-bottom: 6px;
+}
+
+.tamako-button-image-drop {
+    border: 2px dashed var(--tamako-border);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--tamako-surface-alt);
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tamako-button-image-drop:hover,
+.tamako-button-image-drop.dragover {
+    border-color: var(--tamako-primary);
+    background: rgba(255, 182, 193, 0.1);
+}
+
+.tamako-button-image-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    color: var(--tamako-text-muted);
+}
+
+.tamako-button-image-placeholder svg {
+    width: 32px;
+    height: 32px;
+    opacity: 0.5;
+}
+
+.tamako-button-image-placeholder span {
+    font-size: 12px;
+}
+
+.tamako-button-image-placeholder .tamako-hint {
+    font-size: 10px;
+    opacity: 0.6;
+}
+
+.tamako-button-image-preview {
+    max-width: 100%;
+    max-height: 100px;
+    border-radius: 6px;
+    object-fit: contain;
+}
+
+.tamako-btn-remove-image {
+    display: block;
+    width: 100%;
+    margin-top: 8px;
+    padding: 6px 12px;
+    background: rgba(255, 100, 100, 0.1);
+    border: 1px solid rgba(255, 100, 100, 0.3);
+    border-radius: 6px;
+    color: #ff6b6b;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tamako-btn-remove-image:hover {
+    background: rgba(255, 100, 100, 0.2);
+    border-color: #ff6b6b;
+}
+
+.tamako-button-preview-container {
+    margin-top: 12px;
+}
+
+.tamako-button-preview-container > label {
+    display: block;
+    font-size: 12px;
+    color: var(--tamako-text);
+    margin-bottom: 6px;
+}
+
+.tamako-button-live-preview {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    cursor: default;
+}
+
+/* ===== 切换按钮变体 ===== */
+
+.tamako-toggle.tamako-toggle-circle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tamako-toggle.tamako-toggle-has-image .tamako-toggle-icon,
+.tamako-toggle.tamako-toggle-has-image .tamako-toggle-text {
+    display: none !important;
+}
+
+.tamako-toggle.tamako-toggle-circle .tamako-toggle-icon {
+    display: none;
+}
+
+.tamako-toggle.tamako-toggle-circle .tamako-toggle-text {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+/* ===== 标题文字样式（无动画） ===== */
+.tamako-title-animated {
+    color: var(--tamako-text, #E0E0E0);
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+/* ===== 按钮文字样式（无动画） ===== */
+.tamako-toggle .tamako-toggle-text {
+    color: #FFFFFF;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+/* ===== 拖拽时禁用过渡 ===== */
+.tamako-toggle.dragging,
+.tamako-toggle.dragging * {
+    transition: none !important;
+}
+
+/* ===== 切换按钮基础样式 ===== */
+.tamako-toggle {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2), 0 0 20px rgba(147, 112, 219, 0.15);
+    transition: box-shadow 0.3s ease, transform 0.2s ease;
+}
+
+.tamako-toggle:hover:not(.dragging) {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25), 0 0 30px rgba(147, 112, 219, 0.25);
+    transform: scale(1.05);
+}
+
+.tamako-toggle:active:not(.dragging) {
+    transform: scale(0.98);
+}
+
+/* ===== 按钮样式 ===== */
+.tamako-btn {
+    backdrop-filter: blur(4px);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tamako-btn:hover {
+    background: rgba(147, 112, 219, 0.3);
+    transform: translateY(-1px);
+}
+
+.tamako-btn:active {
+    transform: translateY(0) scale(0.95);
+}
+
+.tamako-btn:hover svg {
+    transform: scale(1.1);
+}
+
+.tamako-btn svg {
+    transition: transform 0.2s ease;
+}
+
+/* ===== 标题图标 ===== */
+.tamako-title-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.9;
+}
+
+.tamako-title-icon svg {
+    width: 20px;
+    height: 20px;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+}
+
+/* ===== 选项卡 ===== */
+.tamako-tab svg {
+    opacity: 0.7;
+    transition: all 0.2s ease;
+}
+
+.tamako-tab:hover svg {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.tamako-tab.active svg {
+    opacity: 1;
+}
+
+/* ===== 搜索 ===== */
+.tamako-search svg {
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+}
+
+.tamako-search:focus-within svg {
+    opacity: 0.8;
+}
+
+/* ===== 主题面板 ===== */
+.tamako-theme-panel {
+    background: var(--tamako-surface-alt);
+    border-bottom: 1px solid var(--tamako-border);
+}
+
+.tamako-theme-panel select {
+    background: var(--tamako-surface);
+    border: 1px solid var(--tamako-border);
+    color: var(--tamako-text);
+    transition: all 0.2s ease;
+}
+
+.tamako-theme-panel select:hover {
+    border-color: var(--tamako-primary);
+}
+
+.tamako-theme-panel select:focus {
+    border-color: var(--tamako-primary);
+    box-shadow: 0 0 0 2px rgba(147, 112, 219, 0.2);
+    outline: none;
+}
+
+/* ===== 编辑器标题 ===== */
+.tamako-section-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--tamako-text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--tamako-border);
+}
+
+/* ===== 删除按钮 ===== */
+.tamako-delete-confirm {
+    background: linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%);
+    border: none;
+    box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+    transition: all 0.2s ease;
+}
+
+.tamako-delete-confirm:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+}
+
+/* ===== 空状态 ===== */
+.tamako-empty .icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 10px;
+}
+
+.tamako-empty .icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+/* ===== 历史记录 ===== */
+.tamako-history-item {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tamako-history-item:hover {
+    border-color: var(--tamako-primary);
+    transform: translateX(4px);
+    box-shadow: -4px 0 0 var(--tamako-primary);
+}
+
+/* ===== 滚动条 ===== */
+.tamako-window ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.tamako-window ::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.tamako-window ::-webkit-scrollbar-thumb {
+    background: rgba(147, 112, 219, 0.3);
+    border-radius: 3px;
+}
+
+.tamako-window ::-webkit-scrollbar-thumb:hover {
+    background: rgba(147, 112, 219, 0.5);
+}
+
+/* ===== 窗口 ===== */
+.tamako-window {
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4), 0 0 30px rgba(147, 112, 219, 0.1);
+}
+
+/* ===== 头部 ===== */
+.tamako-header {
+    background: linear-gradient(135deg, rgba(147, 112, 219, 0.9) 0%, rgba(106, 90, 205, 0.9) 100%);
+    backdrop-filter: blur(10px);
+}
+
+/* ===== Toast ===== */
+.tamako-toast {
+    background: linear-gradient(135deg, var(--tamako-primary) 0%, var(--tamako-secondary) 100%);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 15px rgba(147, 112, 219, 0.4);
+}
+
+
