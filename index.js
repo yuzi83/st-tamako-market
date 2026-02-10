@@ -1,14 +1,14 @@
 // index.js
 /**
  * 玉子市场 - SillyTavern 悬浮窗扩展
- * @version 2.5.3 (模块化版本)
+ * @version 2.8.1
  */
 
 import { ICONS, themes } from './modules/constants.js';
 import { extensionEnabled, setCapturedPlots, getCapturedPlots } from './modules/state.js';
 import {
     isMobileDevice, getSettings, saveSetting, getDefaultTogglePosition, constrainPosition,
-    showDeraToast
+    showDeraToast, applyButtonStyles
 } from './modules/utils.js';
 import { applyTheme } from './modules/theme-editor.js';
 import { handleUserMessage, checkLatestUserMessage, scanAllMessages, validateCapturedPlots } from './modules/capture.js';
@@ -22,13 +22,13 @@ function createToggleButton() {
 
     const settings = getSettings();
     const isMobile = isMobileDevice();
-    const savedTheme = settings.theme || 'tamako';
+    const savedTheme = settings.theme || 'night';
     
     const btn = document.createElement('div');
     btn.id = 'tamako-market-toggle';
-    btn.className = `tamako-toggle theme-${savedTheme} ${isMobile ? 'tamako-toggle-mobile' : ''}`;
+    btn.className = `tamako-toggle theme-${savedTheme === 'custom' ? 'custom' : 'night'} ${isMobile ? 'tamako-toggle-mobile' : ''}`;
     btn.innerHTML = `<span class="tamako-toggle-icon">${ICONS.store}</span><span class="tamako-toggle-text">玉子市场</span>`;
-    btn.title = '拖拽移动 / 点击打开玉子市场';
+    btn.title = '拖拽移动 / 点击打开';
     document.body.appendChild(btn);
     
     const defaultPos = getDefaultTogglePosition();
@@ -41,17 +41,25 @@ function createToggleButton() {
         bottom: 'auto'
     });
     
+    // 应用主题和按钮样式
     if (savedTheme === 'custom' && settings.customTheme) {
         $btn.css({
             '--theme-primary': settings.customTheme.colors.primary,
             '--theme-secondary': settings.customTheme.colors.secondary
         });
+        applyButtonStyles(settings.customTheme, $btn);
     } else {
-        const theme = themes[savedTheme] || themes.tamako;
+        const theme = themes.night;
         $btn.css({
             '--theme-primary': theme.primary,
             '--theme-secondary': theme.secondary
         });
+        applyButtonStyles({
+            colors: { primary: theme.primary, secondary: theme.secondary },
+            buttonShape: 'bar',
+            buttonSize: 1.0,
+            buttonImage: null
+        }, $btn);
     }
     
     initToggleDraggable($btn);
@@ -93,17 +101,14 @@ function initToggleDraggable($toggle) {
         
         if (!hasMoved) return;
         
-        const constrained = constrainPosition(
-            e.clientX - offsetX,
-            e.clientY - offsetY,
-            btn.offsetWidth,
-            btn.offsetHeight
-        );
+        // 直接设置位置，不使用 jQuery 动画
+        const newX = e.clientX - offsetX;
+        const newY = e.clientY - offsetY;
         
-        $toggle.css({
-            left: constrained.x + 'px',
-            top: constrained.y + 'px'
-        });
+        const constrained = constrainPosition(newX, newY, btn.offsetWidth, btn.offsetHeight);
+        
+        btn.style.left = constrained.x + 'px';
+        btn.style.top = constrained.y + 'px';
         
         e.preventDefault();
     }
@@ -118,8 +123,8 @@ function initToggleDraggable($toggle) {
         $toggle.removeClass('dragging');
         
         if (hasMoved) {
-            saveSetting('toggleX', parseInt($toggle.css('left')));
-            saveSetting('toggleY', parseInt($toggle.css('top')));
+            saveSetting('toggleX', parseInt(btn.style.left));
+            saveSetting('toggleY', parseInt(btn.style.top));
         }
         
         if (!hasMoved && Date.now() - startTime < 300) {
@@ -290,7 +295,7 @@ function initEventListeners() {
             setTimeout(createSettingsPanel, 2000);
             initEventListeners();
             
-            console.log('[玉子市场] 开店啦！v2.5.3 (模块化版本)');
+            console.log('[玉子市场] v2.8.1');
         } catch (e) {
             console.error('[玉子市场] 初始化错误:', e);
         }
