@@ -1,7 +1,7 @@
 // modules/window.js
 /**
  * 玉子市场 - 窗口管理
- * @version 2.6.0
+ * @version 2.8.1
  */
 
 import { ICONS, themes } from './constants.js';
@@ -28,50 +28,48 @@ export function createWindow() {
         return $('#tamako-market-window');
     }
 
-    const themeOptions = Object.entries(themes).map(([key, theme]) => 
-        `<option value="${key}">${theme.name}</option>`
-    ).join('') + '<option value="custom">✨ 自定义</option>';
+    const themeOptions = `<option value="night">夜间模式</option><option value="custom">自定义</option>`;
     
     const mobileClass = isMobileDevice() ? 'tamako-mobile' : '';
     const settings = getSettings();
-    const savedTheme = settings.theme || 'tamako';
+    const savedTheme = settings.theme || 'night';
 
     const windowHtml = `
-        <div id="tamako-market-window" class="tamako-window theme-${savedTheme} ${mobileClass}">
+        <div id="tamako-market-window" class="tamako-window theme-${savedTheme === 'custom' ? 'custom' : 'night'} ${mobileClass}">
             <div class="tamako-header">
                 <div class="tamako-drag-handle">
                     <div class="tamako-title">
                         <span class="tamako-title-icon">${ICONS.store}</span>
-                        <span>玉子市场</span>
+                        <span class="tamako-title-animated">玉子市场</span>
                     </div>
                 </div>
                 <div class="tamako-controls">
-                    <button class="tamako-btn minimize" title="收起摊位">${ICONS.minimize}</button>
-                    <button class="tamako-btn scan" title="扫描消息">${ICONS.search}</button>
-                    <button class="tamako-btn delete-mode" title="整理商品">${ICONS.broom}</button>
-                    <button class="tamako-btn theme-toggle" title="切换主题">${ICONS.palette}</button>
-                    <button class="tamako-btn theme-edit" title="编辑主题">${ICONS.edit}</button>
-                    <button class="tamako-btn close" title="打烊">${ICONS.close}</button>
+                    <button class="tamako-btn minimize" title="收起">${ICONS.minimize}</button>
+                    <button class="tamako-btn scan" title="扫描">${ICONS.search}</button>
+                    <button class="tamako-btn delete-mode" title="整理">${ICONS.broom}</button>
+                    <button class="tamako-btn theme-toggle" title="主题">${ICONS.palette}</button>
+                    <button class="tamako-btn theme-edit" title="编辑">${ICONS.edit}</button>
+                    <button class="tamako-btn close" title="关闭">${ICONS.close}</button>
                 </div>
             </div>
             <div class="tamako-theme-panel" style="display: none;">
                 <select id="tamako-theme-selector">${themeOptions}</select>
             </div>
             <div class="tamako-tabs">
-                <button class="tamako-tab active" data-tab="current">${ICONS.dango}<span>今日特选</span></button>
+                <button class="tamako-tab active" data-tab="current">${ICONS.star}<span>今日特选</span></button>
                 <button class="tamako-tab" data-tab="history">${ICONS.box}<span>库存 (<span id="tamako-history-count">0</span>)</span></button>
             </div>
             <div id="tamako-dera-toast" class="tamako-toast"></div>
             <div class="tamako-content" data-content="current">
                 <div class="tamako-empty">
-                    <span class="icon">🐔</span>
+                    <span class="icon">${ICONS.sparkle}</span>
                     <span class="message">${getDeraMessage('empty')}</span>
                 </div>
             </div>
             <div class="tamako-content" data-content="history" style="display: none;">
                 <div class="tamako-search">
                     ${ICONS.search}
-                    <input type="text" id="tamako-search-input" placeholder="搜索商品...">
+                    <input type="text" id="tamako-search-input" placeholder="搜索...">
                     <button class="tamako-search-clear" title="清除" style="display: none;">${ICONS.close}</button>
                 </div>
                 <div class="tamako-history-list"></div>
@@ -79,10 +77,10 @@ export function createWindow() {
             <div class="tamako-delete-bar" style="display: none;">
                 <label class="tamako-select-all">
                     <input type="checkbox" id="tamako-select-all">
-                    <span>全部打包</span>
+                    <span>全选</span>
                 </label>
                 <div class="tamako-delete-actions">
-                    <button class="tamako-delete-confirm">${ICONS.trash}<span>清理选中</span></button>
+                    <button class="tamako-delete-confirm">${ICONS.trash}<span>删除</span></button>
                     <button class="tamako-delete-cancel">取消</button>
                 </div>
             </div>
@@ -104,12 +102,12 @@ export function createWindow() {
         height: (settings.windowHeight || defaultPos.height) + 'px'
     });
     
-    $('#tamako-theme-selector').val(savedTheme);
+    $('#tamako-theme-selector').val(savedTheme === 'custom' ? 'custom' : 'night');
     
     if (savedTheme === 'custom' && settings.customTheme) {
         applyTheme('custom', settings.customTheme);
     } else {
-        applyTheme(savedTheme);
+        applyTheme('night');
     }
     
     initDraggable($window);
@@ -312,7 +310,7 @@ function bindWindowEvents($window) {
                 openThemeEditor();
             }
         } else {
-            applyTheme(themeName);
+            applyTheme('night');
         }
         $('.tamako-theme-panel').slideUp(200);
     });
@@ -428,7 +426,7 @@ export function toggleWindow(show) {
     });
 }
 
-// ===== 内容更新 (修改版) =====
+// ===== 内容更新 =====
 
 export function updateCurrentContent(content, rawMessage) {
     const $content = $('#tamako-market-window .tamako-content[data-content="current"]');
@@ -438,14 +436,13 @@ export function updateCurrentContent(content, rawMessage) {
     if (!content?.trim()) {
         $content.css('position', '').empty().html(`
             <div class="tamako-empty">
-                <span class="icon">🐔</span>
+                <span class="icon">${ICONS.sparkle}</span>
                 <span class="message">${getDeraMessage('empty')}</span>
             </div>
         `);
         return;
     }
     
-    // 使用新的模板获取方式
     if (settings.beautifier?.enabled && settings.beautifier?.activeTemplateId) {
         const templateData = getActiveTemplateData();
         if (templateData && rawMessage) {
@@ -475,13 +472,13 @@ export function updateHistoryList() {
     $('#tamako-history-count').text(capturedPlots.length);
     
     if (!capturedPlots.length) {
-        $list.html(`<div class="tamako-empty"><span class="icon">📦</span><span class="message">${getDeraMessage('empty')}</span></div>`);
+        $list.html(`<div class="tamako-empty"><span class="icon">${ICONS.boxEmpty}</span><span class="message">${getDeraMessage('empty')}</span></div>`);
         updateCaptureCount();
         return;
     }
     
     if (filteredPlots.length === 0 && searchQuery) {
-        $list.html(`<div class="tamako-empty"><span class="icon">🔍</span><span class="message">${getDeraMessage('noResult')}</span></div>`);
+        $list.html(`<div class="tamako-empty"><span class="icon">${ICONS.search}</span><span class="message">${getDeraMessage('noResult')}</span></div>`);
         updateCaptureCount();
         return;
     }
