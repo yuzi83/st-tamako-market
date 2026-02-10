@@ -1,10 +1,10 @@
 // modules/utils.js
 /**
  * 玉子市场 - 工具函数
- * @version 2.6.0
+ * @version 2.8.3
  */
 
-import { extensionName, defaultSettings, themes, fontOptions, deraMessages } from './constants.js';
+import { extensionName, defaultSettings, themes, fontOptions, deraMessages, ICONS, BUTTON_SIZE_DEFAULT } from './constants.js';
 import { currentTheme } from './state.js';
 
 // ===== 设备检测 =====
@@ -29,7 +29,6 @@ export function getSettings() {
             if (!s.maxScanMessages) s.maxScanMessages = defaultSettings.maxScanMessages;
             if (!s.maxStoredPlots) s.maxStoredPlots = defaultSettings.maxStoredPlots;
             
-            // 迁移旧版美化器设置
             if (!s.beautifier || s.beautifier.template !== undefined) {
                 s.beautifier = migrateBeautifierSettings(s.beautifier);
             }
@@ -37,6 +36,13 @@ export function getSettings() {
             if (s.beautifier.activeTemplateId === undefined) s.beautifier.activeTemplateId = null;
             
             if (s.customTheme === undefined) s.customTheme = null;
+            
+            if (s.customTheme) {
+                if (s.customTheme.buttonShape === undefined) s.customTheme.buttonShape = 'bar';
+                if (s.customTheme.buttonSize === undefined) s.customTheme.buttonSize = 1.0;
+                if (s.customTheme.buttonImage === undefined) s.customTheme.buttonImage = null;
+            }
+            
             return s;
         }
     } catch (e) {
@@ -45,7 +51,6 @@ export function getSettings() {
     return { ...defaultSettings };
 }
 
-// 迁移旧版单模板设置到新版多模板结构
 function migrateBeautifierSettings(oldBeautifier) {
     const newBeautifier = {
         enabled: false,
@@ -56,7 +61,6 @@ function migrateBeautifierSettings(oldBeautifier) {
     if (oldBeautifier) {
         newBeautifier.enabled = oldBeautifier.enabled || false;
         
-        // 如果有旧模板，迁移到新结构
         if (oldBeautifier.template && oldBeautifier.template.trim()) {
             const migratedTemplate = {
                 id: generateTemplateId(),
@@ -82,7 +86,7 @@ export function saveSetting(key, value) {
     }
 }
 
-// ===== 模板管理辅助函数 =====
+// ===== 模板管理 =====
 
 export function generateTemplateId() {
     return 'tpl_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 5);
@@ -208,7 +212,7 @@ export function getCurrentThemeData() {
     if (currentTheme === 'custom' && settings.customTheme) {
         return settings.customTheme;
     }
-    const preset = themes[currentTheme] || themes.tamako;
+    const preset = themes[currentTheme] || themes.night;
     return {
         name: preset.name,
         basedOn: currentTheme,
@@ -222,15 +226,16 @@ export function getCurrentThemeData() {
             textMuted: preset.textMuted,
             border: preset.border
         },
-        borderRadius: 16,
         opacity: 100,
-        fontFamily: 'system'
+        fontFamily: 'system',
+        buttonShape: 'bar',
+        buttonSize: 1.0,
+        buttonImage: null
     };
 }
 
 export function applyThemeStyles(themeData, $window, $toggle) {
     const colors = themeData.colors;
-    const radius = themeData.borderRadius + 'px';
     const opacity = themeData.opacity / 100;
     const font = fontOptions[themeData.fontFamily]?.value || fontOptions.system.value;
     
@@ -243,7 +248,6 @@ export function applyThemeStyles(themeData, $window, $toggle) {
         '--tamako-text': colors.text,
         '--tamako-text-muted': colors.textMuted,
         '--tamako-border': colors.border,
-        '--tamako-radius': radius,
         '--tamako-opacity': opacity,
         '--tamako-font': font,
         '--theme-primary': colors.primary,
@@ -253,7 +257,6 @@ export function applyThemeStyles(themeData, $window, $toggle) {
     if ($window && $window.length) {
         $window.css(cssVars);
         $window.css({
-            'border-radius': radius,
             'opacity': opacity,
             'font-family': font
         });
@@ -263,9 +266,145 @@ export function applyThemeStyles(themeData, $window, $toggle) {
         $toggle.css({
             '--theme-primary': colors.primary,
             '--theme-secondary': colors.secondary,
-            'border-radius': radius,
             'font-family': font
         });
+    }
+}
+
+// ===== 按钮样式 =====
+
+export function applyButtonStyles(themeData, $toggle) {
+    if (!$toggle || !$toggle.length) return;
+    
+    const shape = themeData.buttonShape || 'bar';
+    const size = themeData.buttonSize || BUTTON_SIZE_DEFAULT;
+    const image = themeData.buttonImage;
+    const colors = themeData.colors;
+    
+    $toggle.removeClass('tamako-toggle-circle tamako-toggle-bar tamako-toggle-has-image');
+    $toggle.find('.tamako-toggle-img').remove();
+    
+    $toggle.css({
+        'width': '',
+        'height': '',
+        'min-width': '',
+        'padding': '',
+        'border-radius': '',
+        'background': '',
+        'background-image': '',
+        'background-size': '',
+        'background-position': '',
+        'border': '',
+        'overflow': ''
+    });
+    
+    let $icon = $toggle.find('.tamako-toggle-icon');
+    let $text = $toggle.find('.tamako-toggle-text');
+    
+    if (!$icon.length) {
+        $toggle.prepend(`<span class="tamako-toggle-icon">${ICONS.store}</span>`);
+        $icon = $toggle.find('.tamako-toggle-icon');
+    }
+    if (!$text.length) {
+        $toggle.append(`<span class="tamako-toggle-text">玉子市场</span>`);
+        $text = $toggle.find('.tamako-toggle-text');
+    }
+    
+    if (image) {
+        $toggle.addClass('tamako-toggle-has-image');
+        $icon.hide();
+        $text.hide();
+        
+        if (shape === 'circle') {
+            $toggle.addClass('tamako-toggle-circle');
+            const circleSize = 48 * size;
+            $toggle.css({
+                'width': `${circleSize}px`,
+                'height': `${circleSize}px`,
+                'min-width': `${circleSize}px`,
+                'padding': '0',
+                'border-radius': '50%',
+                'background': 'transparent',
+                'border': 'none',
+                'overflow': 'hidden',
+                'display': 'flex',
+                'align-items': 'center',
+                'justify-content': 'center'
+            });
+            $toggle.append(`<img class="tamako-toggle-img" src="${image}" style="width: 100%; height: 100%; object-fit: cover; pointer-events: none;">`);
+        } else {
+            $toggle.addClass('tamako-toggle-bar');
+            const barHeight = 40 * size;
+            $toggle.css({
+                'width': 'auto',
+                'height': `${barHeight}px`,
+                'min-width': 'auto',
+                'padding': '0',
+                'border-radius': `${12 * size}px`,
+                'background': 'transparent',
+                'border': 'none',
+                'overflow': 'hidden',
+                'display': 'inline-flex',
+                'align-items': 'center',
+                'justify-content': 'center'
+            });
+            $toggle.append(`<img class="tamako-toggle-img" src="${image}" style="height: 100%; width: auto; object-fit: contain; pointer-events: none;">`);
+        }
+        
+    } else {
+        const gradient = `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`;
+        
+        if (shape === 'circle') {
+            $toggle.addClass('tamako-toggle-circle');
+            const circleSize = 48 * size;
+            $toggle.css({
+                'width': `${circleSize}px`,
+                'height': `${circleSize}px`,
+                'min-width': `${circleSize}px`,
+                'padding': '0',
+                'border-radius': '50%',
+                'background': gradient,
+                'border': '2px solid rgba(255,255,255,0.3)',
+                'display': 'flex',
+                'align-items': 'center',
+                'justify-content': 'center'
+            });
+            
+            $icon.hide();
+            $text.show().text('玉').css({
+                'font-size': `${16 * size}px`,
+                'font-weight': 'bold',
+                'color': '#FFFFFF'
+            });
+            
+        } else {
+            $toggle.addClass('tamako-toggle-bar');
+            $toggle.css({
+                'width': 'auto',
+                'height': 'auto',
+                'min-width': 'auto',
+                'padding': `${8 * size}px ${14 * size}px`,
+                'border-radius': `${12 * size}px`,
+                'background': gradient,
+                'border': '2px solid rgba(255,255,255,0.3)',
+                'display': 'flex',
+                'align-items': 'center',
+                'gap': `${6 * size}px`
+            });
+            
+            $icon.show().css({
+                'width': `${18 * size}px`,
+                'height': `${18 * size}px`
+            }).find('svg').css({
+                'width': '100%',
+                'height': '100%'
+            });
+            $text.show().text('玉子市场').css({
+                'font-size': `${14 * size}px`,
+                'font-weight': '600',
+                'color': '#FFFFFF'
+            });
+        }
     }
 }
 
@@ -290,7 +429,7 @@ export function extractAMCodes(content) {
 }
 
 export function formatAMCodes(codes) {
-    if (codes.length === 0) return '暂时没有商品入库哦~';
+    if (codes.length === 0) return '暂无内容';
     if (codes.length <= 3) return codes.join(', ');
     return `${codes.slice(0, 3).join(', ')} 等${codes.length}件`;
 }
