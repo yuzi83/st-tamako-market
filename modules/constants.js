@@ -1,32 +1,133 @@
 // modules/constants.js
 /**
  * 玉子市场 - 常量定义
- * @version 2.6.0
+ * @version 2.8.3
  */
 
 export const extensionName = 'TamakoMarket';
 
 export const ICONS = {
-    store: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 7h16v2H4V7zm-1 4h18v2H3v-2zm2 4h14v6H5v-6zm2 2v2h10v-2H7z"/><path d="M4 3h16l2 4H2l2-4z"/></svg>`,
-    minimize: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13H5v-2h14v2z"/></svg>`,
-    expand: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>`,
-    search: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>`,
-    broom: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.36 2.72L20.78 4.14L15.06 9.85C16.13 11.39 16.28 13.24 15.38 14.44L9.06 8.12C10.26 7.22 12.11 7.37 13.65 8.44L19.36 2.72M5.93 17.57C3.92 15.56 2.69 13.16 2.35 10.92L7.23 8.83L14.67 16.27L12.58 21.15C10.34 20.81 7.94 19.58 5.93 17.57Z"/></svg>`,
-    palette: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>`,
-    close: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>`,
-    dango: `<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="3"/><circle cx="12" cy="12" r="3"/><circle cx="12" cy="19" r="3"/><rect x="11" y="2" width="2" height="20"/></svg>`,
-    box: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 16.5c0 .38-.21.71-.53.88l-7.9 4.44c-.16.12-.36.18-.57.18-.21 0-.41-.06-.57-.18l-7.9-4.44A.991.991 0 0 1 3 16.5v-9c0-.38.21-.71.53-.88l7.9-4.44c.16-.12.36-.18.57-.18.21 0 .41.06.57.18l7.9 4.44c.32.17.53.5.53.88v9zM12 4.15L6.04 7.5 12 10.85l5.96-3.35L12 4.15zM5 15.91l6 3.38v-6.71L5 9.21v6.7zm14 0v-6.7l-6 3.37v6.71l6-3.38z"/></svg>`,
-    pin: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`,
-    trash: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>`,
-    edit: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>`,
-    eyedropper: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.71 5.63l-2.34-2.34a1 1 0 0 0-1.41 0l-3.12 3.12-1.23-1.21a1 1 0 0 0-1.42 0L10 6.41a1 1 0 0 0 0 1.41l.71.72-7.37 7.37a2 2 0 0 0-.59 1.42V21h3.67a2 2 0 0 0 1.42-.59l7.37-7.37.72.71a1 1 0 0 0 1.41 0l1.21-1.21a1 1 0 0 0 0-1.42l-1.21-1.23 3.12-3.12a1 1 0 0 0 .25-1.14zM5.41 19H5v-.41l7.37-7.37 1.41 1.41L6.41 19z"/></svg>`,
-    check: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>`,
-    reset: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>`,
-    copy: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>`,
+    store: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9.5L12 4L21 9.5"/>
+        <path d="M5 9.5V19C5 19.5523 5.44772 20 6 20H18C18.5523 20 19 19.5523 19 19V9.5"/>
+        <rect x="9" y="13" width="6" height="7" rx="1"/>
+        <circle cx="12" cy="9" r="2"/>
+    </svg>`,
+    
+    minimize: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M6 12H18"/>
+    </svg>`,
+    
+    expand: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M12 6V18M6 12H18"/>
+    </svg>`,
+    
+    search: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="10.5" cy="10.5" r="6"/>
+        <path d="M15 15L20 20"/>
+    </svg>`,
+    
+    broom: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 3V10"/>
+        <path d="M8 10C8 10 6 14 6 17C6 19 8 21 12 21C16 21 18 19 18 17C18 14 16 10 16 10"/>
+        <path d="M8 10H16"/>
+        <path d="M9 14H15"/>
+        <path d="M10 17H14"/>
+    </svg>`,
+    
+    palette: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="9"/>
+        <circle cx="8" cy="9" r="1.5" fill="currentColor"/>
+        <circle cx="12" cy="7" r="1.5" fill="currentColor"/>
+        <circle cx="16" cy="9" r="1.5" fill="currentColor"/>
+        <circle cx="8" cy="14" r="1.5" fill="currentColor"/>
+        <path d="M14 14C14 15.6569 15.3431 17 17 17C17 17 19 17 19 15C19 13 17 13 17 11"/>
+    </svg>`,
+    
+    edit: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M15.5 5.5L18.5 8.5"/>
+        <path d="M6 19L5 21L7 20L19 8C19.5523 7.44772 19.5523 6.55228 19 6L18 5C17.4477 4.44772 16.5523 4.44772 16 5L4 17L4.5 18.5"/>
+        <path d="M14.5 6.5L17.5 9.5"/>
+    </svg>`,
+    
+    close: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M6 6L18 18M18 6L6 18"/>
+    </svg>`,
+    
+    star: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 3L14.5 8.5L20.5 9.5L16 14L17 20L12 17.5L7 20L8 14L3.5 9.5L9.5 8.5L12 3Z" fill="currentColor" opacity="0.2"/>
+        <path d="M12 3L14.5 8.5L20.5 9.5L16 14L17 20L12 17.5L7 20L8 14L3.5 9.5L9.5 8.5L12 3Z"/>
+    </svg>`,
+    
+    box: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 8L12 3L21 8V16L12 21L3 16V8Z"/>
+        <path d="M12 12L21 8"/>
+        <path d="M12 12L3 8"/>
+        <path d="M12 12V21"/>
+        <circle cx="12" cy="8" r="1" fill="currentColor"/>
+    </svg>`,
+    
+    pin: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 21C12 21 19 14.5 19 9.5C19 5.35786 15.866 2 12 2C8.13401 2 5 5.35786 5 9.5C5 14.5 12 21 12 21Z"/>
+        <circle cx="12" cy="9.5" r="2.5" fill="currentColor" opacity="0.3"/>
+        <circle cx="12" cy="9.5" r="2.5"/>
+    </svg>`,
+    
+    trash: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 6H20"/>
+        <path d="M8 6V4C8 3.44772 8.44772 3 9 3H15C15.5523 3 16 3.44772 16 4V6"/>
+        <path d="M6 6V19C6 20.1046 6.89543 21 8 21H16C17.1046 21 18 20.1046 18 19V6"/>
+        <path d="M10 10V17"/>
+        <path d="M14 10V17"/>
+    </svg>`,
+    
+    eyedropper: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 4C20.5 4.5 21 5.5 21 6.5C21 7.5 20.5 8.5 20 9L18 11L13 6L15 4C15.5 3.5 16.5 3 17.5 3C18.5 3 19.5 3.5 20 4Z"/>
+        <path d="M13 6L18 11L9 20H4V15L13 6Z"/>
+        <circle cx="6.5" cy="17.5" r="1"/>
+    </svg>`,
+    
+    check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 12L10 17L19 7"/>
+    </svg>`,
+    
+    reset: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 12C4 7.58172 7.58172 4 12 4C15.0736 4 17.7355 5.69852 19 8.17"/>
+        <path d="M20 12C20 16.4183 16.4183 20 12 20C8.92638 20 6.26449 18.3015 5 15.83"/>
+        <path d="M16 8H20V4"/>
+        <path d="M8 16H4V20"/>
+    </svg>`,
+    
+    copy: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="8" y="8" width="12" height="12" rx="2"/>
+        <path d="M16 8V6C16 4.89543 15.1046 4 14 4H6C4.89543 4 4 4.89543 4 6V14C4 15.1046 4.89543 16 6 16H8"/>
+    </svg>`,
+    
+    image: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="3"/>
+        <circle cx="8.5" cy="8.5" r="2"/>
+        <path d="M21 15L16 10L6 21"/>
+    </svg>`,
+    
+    sparkle: `<svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2L13.5 8.5L20 10L13.5 11.5L12 18L10.5 11.5L4 10L10.5 8.5L12 2Z"/>
+        <path d="M18 14L19 17L22 18L19 19L18 22L17 19L14 18L17 17L18 14Z" opacity="0.6"/>
+        <path d="M6 16L6.5 18L4 18.5L6.5 19L7 21L7.5 19L10 18.5L7.5 18L6 16Z" opacity="0.4"/>
+    </svg>`,
+    
+    boxEmpty: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 8L12 3L21 8V16L12 21L3 16V8Z"/>
+        <path d="M12 12L21 8"/>
+        <path d="M12 12L3 8"/>
+        <path d="M12 12V21"/>
+    </svg>`,
 };
 
-// 最大模板数量
 export const MAX_TEMPLATES = 10;
+
+export const BUTTON_SIZE_MIN = 0.6;
+export const BUTTON_SIZE_MAX = 1.5;
+export const BUTTON_SIZE_DEFAULT = 1.0;
 
 export const defaultSettings = {
     enabled: true,
@@ -36,69 +137,76 @@ export const defaultSettings = {
     windowHeight: 450,
     autoCapture: true,
     captureTags: ['recall', 'scene_direction'],
-    theme: 'tamako',
+    theme: 'night',
     maxScanMessages: 50,
     maxStoredPlots: 50,
     toggleX: null,
     toggleY: null,
-    // 新的美化器结构
     beautifier: {
         enabled: false,
-        activeTemplateId: null,  // 当前激活的模板ID
-        templates: []  // { id, name, template, createdAt }
+        activeTemplateId: null,
+        templates: []
     },
     customTheme: null,
 };
 
 export const themes = {
-    tamako: { name: '🌸 玉子市场', primary: '#FFB6C1', secondary: '#DDA0DD', bg: 'linear-gradient(135deg, #FFF5F7 0%, #FFFFFF 50%, #F8F0FF 100%)', surface: '#FFFFFF', surfaceAlt: '#FFF8FA', text: '#333333', textMuted: '#888888', border: 'rgba(0, 0, 0, 0.1)' },
-    ocean: { name: '🌊 海边小店', primary: '#87CEEB', secondary: '#5F9EA0', bg: 'linear-gradient(135deg, #F0F8FF 0%, #FFFFFF 50%, #E6F3FF 100%)', surface: '#FFFFFF', surfaceAlt: '#F0F8FF', text: '#333333', textMuted: '#888888', border: 'rgba(0, 0, 0, 0.1)' },
-    sunflower: { name: '🌻 向日葵田', primary: '#FFD700', secondary: '#FFA500', bg: 'linear-gradient(135deg, #FFFEF0 0%, #FFFFFF 50%, #FFF8E7 100%)', surface: '#FFFFFF', surfaceAlt: '#FFFEF0', text: '#333333', textMuted: '#888888', border: 'rgba(0, 0, 0, 0.1)' },
-    night: { name: '🌙 夜间模式', primary: '#9370DB', secondary: '#6A5ACD', bg: 'linear-gradient(135deg, #2D2D3A 0%, #1E1E28 50%, #252532 100%)', surface: '#1E1E28', surfaceAlt: '#2D2D3A', text: '#E0E0E0', textMuted: '#888888', border: '#3D3D4A' },
+    night: { 
+        name: '夜间模式', 
+        primary: '#9370DB', 
+        secondary: '#6A5ACD', 
+        bg: 'linear-gradient(135deg, #2D2D3A 0%, #1E1E28 50%, #252532 100%)', 
+        surface: '#1E1E28', 
+        surfaceAlt: '#2D2D3A', 
+        text: '#E0E0E0', 
+        textMuted: '#888888', 
+        border: '#3D3D4A' 
+    },
 };
 
 export const defaultCustomTheme = {
     name: '自定义',
-    basedOn: 'tamako',
+    basedOn: 'night',
     colors: {
-        primary: '#FFB6C1',
-        secondary: '#DDA0DD',
-        bg: 'linear-gradient(135deg, #FFF5F7 0%, #FFFFFF 50%, #F8F0FF 100%)',
-        surface: '#FFFFFF',
-        surfaceAlt: '#FFF8FA',
-        text: '#333333',
+        primary: '#9370DB',
+        secondary: '#6A5ACD',
+        bg: 'linear-gradient(135deg, #2D2D3A 0%, #1E1E28 50%, #252532 100%)',
+        surface: '#1E1E28',
+        surfaceAlt: '#2D2D3A',
+        text: '#E0E0E0',
         textMuted: '#888888',
-        border: 'rgba(0, 0, 0, 0.1)'
+        border: '#3D3D4A'
     },
-    borderRadius: 16,
     opacity: 100,
-    fontFamily: 'system'
+    fontFamily: 'system',
+    buttonShape: 'bar',
+    buttonSize: 1.0,
+    buttonImage: null
 };
 
 export const fontOptions = {
-    system: { name: '📱 系统默认', value: "'Segoe UI', 'Microsoft YaHei', sans-serif" },
-    cute: { name: '🎀 可爱圆润', value: "'Comic Sans MS', 'Microsoft YaHei', cursive" },
-    elegant: { name: '📜 优雅衬线', value: "Georgia, 'Noto Serif SC', serif" },
-    mono: { name: '💻 等宽代码', value: "Consolas, 'Source Code Pro', monospace" },
-    pixel: { name: '🎮 像素复古', value: "'VT323', 'Courier New', monospace" },
-    handwrite: { name: '✍️ 手写体', value: "'Segoe Script', 'STXingkai', cursive" },
-    rounded: { name: '⭕ 圆体', value: "'Yuanti SC', 'Microsoft YaHei', sans-serif" },
-    songti: { name: '📖 宋体', value: "'Noto Serif SC', 'SimSun', serif" },
-    heiti: { name: '🔲 黑体', value: "'Noto Sans SC', 'SimHei', sans-serif" },
-    kaiti: { name: '🖌️ 楷体', value: "'STKaiti', 'KaiTi', serif" }
+    system: { name: '系统默认', value: "'Segoe UI', 'Microsoft YaHei', sans-serif" },
+    cute: { name: '可爱圆润', value: "'Comic Sans MS', 'Microsoft YaHei', cursive" },
+    elegant: { name: '优雅衬线', value: "Georgia, 'Noto Serif SC', serif" },
+    mono: { name: '等宽代码', value: "Consolas, 'Source Code Pro', monospace" },
+    rounded: { name: '圆体', value: "'Yuanti SC', 'Microsoft YaHei', sans-serif" },
+    songti: { name: '宋体', value: "'Noto Serif SC', 'SimSun', serif" },
+    heiti: { name: '黑体', value: "'Noto Sans SC', 'SimHei', sans-serif" },
+    kaiti: { name: '楷体', value: "'STKaiti', 'KaiTi', serif" }
 };
 
 export const deraMessages = {
-    empty: ['德拉在打瞌睡...', '店里空空的，德拉好无聊~', '德拉等着新货到来！'],
-    newItem: ['德拉发现了新货！', '有新商品入库啦！', '德拉：这个看起来不错哦~'],
-    scanning: ['德拉正在努力搜寻...', '等等，德拉在找东西~', '德拉的雷达启动中...'],
-    found: ['德拉找到了好多东西！', '搜寻完毕！德拉很棒吧~', '库存已更新，德拉辛苦了！'],
-    delete: ['德拉帮你打包好了~', '清理完毕！店铺更整洁了~', '德拉：这些就交给我处理吧！'],
-    noResult: ['德拉找不到这个呢...', '没有匹配的商品哦~', '德拉翻遍了也没找到~'],
-    tooMany: ['商品太多了，德拉只拿了一部分~', '库存爆满！德拉尽力了~'],
-    loading: ['德拉正在准备...', '稍等一下哦~', '德拉在努力加载中...'],
-    theme: ['德拉帮你换装啦~', '新风格真好看！', '德拉喜欢这个颜色~'],
-    templateSaved: ['模板已收藏！', '德拉帮你保存好了~', '新模板入库成功！'],
-    templateDeleted: ['模板已移除~', '德拉帮你清理掉了~'],
-    templateSwitch: ['切换成功！', '德拉换上新衣服啦~', '焕然一新！'],
+    empty: ['空空如也~', '等待中...', '暂无内容'],
+    newItem: ['发现新内容', '有新的了', '捕获成功'],
+    scanning: ['正在搜寻...', '扫描中...', '请稍等...'],
+    found: ['找到了', '搜寻完毕', '已更新'],
+    delete: ['已清理', '删除完成', '清理完毕'],
+    noResult: ['没找到', '无匹配内容', '试试其他关键词'],
+    tooMany: ['内容太多了', '只取了一部分'],
+    loading: ['准备中...', '稍等...', '加载中...'],
+    theme: ['主题已切换', '新风格', '已更新'],
+    templateSaved: ['模板已保存', '收藏成功', '保存完毕'],
+    templateDeleted: ['模板已移除', '删除成功'],
+    templateSwitch: ['切换成功', '已应用', '生效了'],
+    buttonUpdated: ['按钮更新了', '新造型', '完成'],
 };
