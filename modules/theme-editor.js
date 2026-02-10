@@ -1,17 +1,17 @@
 // modules/theme-editor.js
 /**
  * 玉子市场 - 主题编辑器
- * @version 2.5.3
+ * @version 2.8.3
  */
 
-import { ICONS, themes, fontOptions } from './constants.js';
+import { ICONS, themes, fontOptions, BUTTON_SIZE_MIN, BUTTON_SIZE_MAX, BUTTON_SIZE_DEFAULT } from './constants.js';
 import {
     isThemeEditorOpen, tempCustomTheme, isEyedropperActive, currentEditingColor, pickerState,
     setThemeEditorOpen, setTempCustomTheme, setEyedropperActive, setCurrentEditingColor, updatePickerState
 } from './state.js';
 import {
     isMobileDevice, getSettings, saveSetting, getCurrentThemeData, applyThemeStyles,
-    showDeraToast, hexToRgb, rgbToHex, rgbToHsl, hslToRgb, parseColor
+    showDeraToast, hexToRgb, rgbToHex, rgbToHsl, hslToRgb, parseColor, applyButtonStyles
 } from './utils.js';
 
 let isDraggingSL = false;
@@ -22,22 +22,28 @@ export function applyTheme(themeName, customData = null) {
     const $window = $('#tamako-market-window');
     const $toggle = $('#tamako-market-toggle');
     
-    $window.removeClass('theme-tamako theme-ocean theme-sunflower theme-night theme-custom');
-    $toggle.removeClass('theme-tamako theme-ocean theme-sunflower theme-night theme-custom');
+    $window.removeClass('theme-night theme-custom');
+    $toggle.removeClass('theme-night theme-custom');
     
     if (themeName === 'custom' && customData) {
-        // 通过 state 模块设置
         import('./state.js').then(state => state.setCurrentTheme('custom'));
         $window.addClass('theme-custom');
         $toggle.addClass('theme-custom');
         applyThemeStyles(customData, $window, $toggle);
+        applyButtonStyles(customData, $toggle);
+        
+        const colors = customData.colors;
+        $window.find('.tamako-header').css({
+            'background': `linear-gradient(135deg, ${colors.primary}E6 0%, ${colors.secondary}E6 100%)`
+        });
+        
         saveSetting('theme', 'custom');
         saveSetting('customTheme', customData);
     } else {
-        import('./state.js').then(state => state.setCurrentTheme(themeName));
-        const preset = themes[themeName] || themes.tamako;
-        $window.addClass(`theme-${themeName}`);
-        $toggle.addClass(`theme-${themeName}`);
+        import('./state.js').then(state => state.setCurrentTheme('night'));
+        const preset = themes.night;
+        $window.addClass('theme-night');
+        $toggle.addClass('theme-night');
         
         const themeData = {
             colors: {
@@ -50,12 +56,20 @@ export function applyTheme(themeName, customData = null) {
                 textMuted: preset.textMuted,
                 border: preset.border
             },
-            borderRadius: 16,
             opacity: 100,
-            fontFamily: 'system'
+            fontFamily: 'system',
+            buttonShape: 'bar',
+            buttonSize: 1.0,
+            buttonImage: null
         };
         applyThemeStyles(themeData, $window, $toggle);
-        saveSetting('theme', themeName);
+        applyButtonStyles(themeData, $toggle);
+        
+        $window.find('.tamako-header').css({
+            'background': `linear-gradient(135deg, ${preset.primary}E6 0%, ${preset.secondary}E6 100%)`
+        });
+        
+        saveSetting('theme', 'night');
     }
     
     $('#tamako-theme-selector').val(themeName);
@@ -85,18 +99,18 @@ function createThemeEditorContent() {
     const themeData = tempCustomTheme || getCurrentThemeData();
     const colors = themeData.colors;
     
-    const themeOptions = Object.entries(themes).map(([key, theme]) => 
-        `<option value="${key}" ${themeData.basedOn === key ? 'selected' : ''}>${theme.name}</option>`
-    ).join('');
-    
     const fontOptionsHtml = Object.entries(fontOptions).map(([key, font]) =>
         `<option value="${key}" ${themeData.fontFamily === key ? 'selected' : ''}>${font.name}</option>`
     ).join('');
     
+    const buttonShape = themeData.buttonShape || 'bar';
+    const buttonSize = themeData.buttonSize || BUTTON_SIZE_DEFAULT;
+    const hasImage = !!themeData.buttonImage;
+    
     return `
         <div class="tamako-theme-editor">
             <div class="tamako-editor-header">
-                <span>🎨 主题编辑器</span>
+                <span>主题编辑器</span>
                 <div class="tamako-editor-actions">
                     <button class="tamako-editor-btn save" title="保存">${ICONS.check}</button>
                     <button class="tamako-editor-btn reset" title="重置">${ICONS.reset}</button>
@@ -105,13 +119,6 @@ function createThemeEditorContent() {
             </div>
             
             <div class="tamako-editor-body">
-                <div class="tamako-editor-section">
-                    <div class="tamako-section-title">基础模板</div>
-                    <select id="tamako-base-theme" class="tamako-editor-select">
-                        ${themeOptions}
-                    </select>
-                </div>
-                
                 <div class="tamako-editor-section">
                     <div class="tamako-section-title">颜色设置</div>
                     ${createColorPicker('primary', '主色', colors.primary)}
@@ -125,11 +132,6 @@ function createThemeEditorContent() {
                 <div class="tamako-editor-section">
                     <div class="tamako-section-title">样式设置</div>
                     <div class="tamako-slider-row">
-                        <label>圆角大小</label>
-                        <input type="range" id="tamako-border-radius" min="0" max="24" value="${themeData.borderRadius}">
-                        <span class="tamako-slider-value">${themeData.borderRadius}px</span>
-                    </div>
-                    <div class="tamako-slider-row">
                         <label>透明度</label>
                         <input type="range" id="tamako-opacity" min="50" max="100" value="${themeData.opacity}">
                         <span class="tamako-slider-value">${themeData.opacity}%</span>
@@ -141,7 +143,46 @@ function createThemeEditorContent() {
                     <select id="tamako-font-family" class="tamako-editor-select">
                         ${fontOptionsHtml}
                     </select>
-                    <div class="tamako-font-preview">预览：德拉的玉子市场 ABC 123</div>
+                    <div class="tamako-font-preview">预览：玉子市场 ABC 123</div>
+                </div>
+                
+                <div class="tamako-editor-section">
+                    <div class="tamako-section-title">按钮设置</div>
+                    
+                    <div class="tamako-button-shape-row">
+                        <label>形状</label>
+                        <select id="tamako-button-shape" class="tamako-editor-select">
+                            <option value="bar" ${buttonShape === 'bar' ? 'selected' : ''}>长条形</option>
+                            <option value="circle" ${buttonShape === 'circle' ? 'selected' : ''}>圆形</option>
+                        </select>
+                    </div>
+                    
+                    <div class="tamako-slider-row">
+                        <label>大小</label>
+                        <input type="range" id="tamako-button-size" min="${BUTTON_SIZE_MIN * 100}" max="${BUTTON_SIZE_MAX * 100}" value="${buttonSize * 100}">
+                        <span class="tamako-slider-value">${Math.round(buttonSize * 100)}%</span>
+                    </div>
+                    
+                    <div class="tamako-button-image-section">
+                        <label>自定义图片</label>
+                        <div class="tamako-button-image-drop" id="tamako-button-image-drop">
+                            ${hasImage 
+                                ? `<img src="${themeData.buttonImage}" class="tamako-button-image-preview" alt="预览">`
+                                : `<div class="tamako-button-image-placeholder">
+                                    ${ICONS.image}
+                                    <span>点击或拖拽上传图片</span>
+                                    <span class="tamako-hint">支持 jpg/png/gif</span>
+                                  </div>`
+                            }
+                        </div>
+                        <input type="file" id="tamako-button-image-input" accept="image/jpeg,image/png,image/gif" style="display:none">
+                        ${hasImage ? '<button id="tamako-button-image-remove" class="tamako-btn-remove-image">移除图片</button>' : ''}
+                    </div>
+                    
+                    <div class="tamako-button-preview-container">
+                        <label>预览</label>
+                        <div class="tamako-button-live-preview" id="tamako-button-live-preview"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -188,8 +229,10 @@ export function openThemeEditor() {
     $window.append(`<div class="tamako-editor-container">${editorHtml}</div>`);
     
     bindThemeEditorEvents($window);
+    bindButtonEditorEvents($window);
     initColorPicker();
     updateFontPreview();
+    updateButtonPreview();
 }
 
 export function closeThemeEditor(save = false) {
@@ -206,7 +249,7 @@ export function closeThemeEditor(save = false) {
         if (settings.theme === 'custom' && settings.customTheme) {
             applyTheme('custom', settings.customTheme);
         } else {
-            applyTheme(settings.theme || 'tamako');
+            applyTheme('night');
         }
     }
     
@@ -214,7 +257,6 @@ export function closeThemeEditor(save = false) {
     $window.find('.tamako-editor-container').remove();
     $window.find('.tamako-tabs, .tamako-content[data-content="current"]').show();
     
-    // 动态导入 state 检查 deleteMode
     import('./state.js').then(state => {
         if (state.deleteMode) {
             $window.find('.tamako-delete-bar').show();
@@ -260,16 +302,40 @@ function applyTempTheme() {
     if (!tempCustomTheme) return;
     const $window = $('#tamako-market-window');
     const $toggle = $('#tamako-market-toggle');
+    
     applyThemeStyles(tempCustomTheme, $window, $toggle);
+    applyButtonStyles(tempCustomTheme, $toggle);
+    
+    const colors = tempCustomTheme.colors;
+    $window.css({
+        '--tamako-primary': colors.primary,
+        '--tamako-secondary': colors.secondary,
+        '--tamako-bg': colors.bg || `linear-gradient(135deg, ${colors.surfaceAlt} 0%, ${colors.surface} 50%, ${colors.surfaceAlt} 100%)`,
+        '--tamako-surface': colors.surface,
+        '--tamako-surface-alt': colors.surfaceAlt,
+        '--tamako-text': colors.text,
+        '--tamako-text-muted': colors.textMuted,
+        '--tamako-border': colors.border,
+        '--theme-primary': colors.primary,
+        '--theme-secondary': colors.secondary
+    });
+    
+    $window.find('.tamako-header').css({
+        'background': `linear-gradient(135deg, ${colors.primary}E6 0%, ${colors.secondary}E6 100%)`
+    });
+    
+    $toggle.css({
+        '--theme-primary': colors.primary,
+        '--theme-secondary': colors.secondary
+    });
 }
 
 function resetThemeEditor() {
-    const baseName = $('#tamako-base-theme').val() || 'tamako';
-    const preset = themes[baseName];
+    const preset = themes.night;
     
     const newTheme = {
         name: '自定义',
-        basedOn: baseName,
+        basedOn: 'night',
         colors: {
             primary: preset.primary,
             secondary: preset.secondary,
@@ -280,20 +346,211 @@ function resetThemeEditor() {
             textMuted: preset.textMuted,
             border: preset.border
         },
-        borderRadius: 16,
         opacity: 100,
-        fontFamily: 'system'
+        fontFamily: 'system',
+        buttonShape: 'bar',
+        buttonSize: 1.0,
+        buttonImage: null
     };
     
     setTempCustomTheme(newTheme);
     refreshEditorColors();
     
-    $('#tamako-border-radius').val(16).siblings('.tamako-slider-value').text('16px');
     $('#tamako-opacity').val(100).siblings('.tamako-slider-value').text('100%');
     $('#tamako-font-family').val('system');
-    updateFontPreview();
+    $('#tamako-button-shape').val('bar');
+    $('#tamako-button-size').val(100).siblings('.tamako-slider-value').text('100%');
     
+    $('#tamako-button-image-drop').html(`
+        <div class="tamako-button-image-placeholder">
+            ${ICONS.image}
+            <span>点击或拖拽上传图片</span>
+            <span class="tamako-hint">支持 jpg/png/gif</span>
+        </div>
+    `);
+    $('#tamako-button-image-remove').remove();
+    
+    updateFontPreview();
+    updateButtonPreview();
     applyTempTheme();
+}
+
+// ===== 按钮编辑器事件 =====
+
+function bindButtonEditorEvents($window) {
+    $window.find('#tamako-button-shape').on('change', function() {
+        if (tempCustomTheme) {
+            tempCustomTheme.buttonShape = this.value;
+            updateButtonPreview();
+            applyTempTheme();
+        }
+    });
+    
+    $window.find('#tamako-button-size').on('input', function() {
+        const value = parseInt(this.value) / 100;
+        $(this).siblings('.tamako-slider-value').text(Math.round(value * 100) + '%');
+        if (tempCustomTheme) {
+            tempCustomTheme.buttonSize = value;
+            updateButtonPreview();
+            applyTempTheme();
+        }
+    });
+    
+    const $imageDrop = $window.find('#tamako-button-image-drop');
+    const $imageInput = $window.find('#tamako-button-image-input');
+    
+    $imageDrop.on('click', () => $imageInput.click());
+    
+    $imageDrop.on('dragover', function(e) {
+        e.preventDefault();
+        $(this).addClass('dragover');
+    });
+    
+    $imageDrop.on('dragleave drop', function(e) {
+        e.preventDefault();
+        $(this).removeClass('dragover');
+    });
+    
+    $imageDrop.on('drop', function(e) {
+        e.preventDefault();
+        const files = e.originalEvent.dataTransfer.files;
+        if (files.length > 0) {
+            handleButtonImageUpload(files[0]);
+        }
+    });
+    
+    $imageInput.on('change', function() {
+        if (this.files.length > 0) {
+            handleButtonImageUpload(this.files[0]);
+            this.value = '';
+        }
+    });
+    
+    $window.on('click', '#tamako-button-image-remove', function() {
+        if (tempCustomTheme) {
+            tempCustomTheme.buttonImage = null;
+            
+            $('#tamako-button-image-drop').html(`
+                <div class="tamako-button-image-placeholder">
+                    ${ICONS.image}
+                    <span>点击或拖拽上传图片</span>
+                    <span class="tamako-hint">支持 jpg/png/gif</span>
+                </div>
+            `);
+            $(this).remove();
+            
+            updateButtonPreview();
+            applyTempTheme();
+        }
+    });
+}
+
+function handleButtonImageUpload(file) {
+    if (!file) return;
+    
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+        alert('请上传 jpg、png 或 gif 格式的图片');
+        return;
+    }
+    
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+        const base64 = e.target.result;
+        
+        if (tempCustomTheme) {
+            tempCustomTheme.buttonImage = base64;
+            
+            $('#tamako-button-image-drop').html(
+                `<img src="${base64}" class="tamako-button-image-preview" alt="预览">`
+            );
+            
+            if (!$('#tamako-button-image-remove').length) {
+                $('#tamako-button-image-drop').after(
+                    '<button id="tamako-button-image-remove" class="tamako-btn-remove-image">移除图片</button>'
+                );
+            }
+            
+            updateButtonPreview();
+            applyTempTheme();
+        }
+    };
+    
+    reader.onerror = function() {
+        alert('图片读取失败，请重试');
+    };
+    
+    reader.readAsDataURL(file);
+}
+
+function updateButtonPreview() {
+    if (!tempCustomTheme) return;
+    
+    const $preview = $('#tamako-button-live-preview');
+    const shape = tempCustomTheme.buttonShape || 'bar';
+    const size = tempCustomTheme.buttonSize || 1.0;
+    const image = tempCustomTheme.buttonImage;
+    const colors = tempCustomTheme.colors;
+    
+    $preview.empty().removeAttr('style');
+    
+    if (image) {
+        if (shape === 'circle') {
+            $preview.css({
+                'width': `${48 * size}px`,
+                'height': `${48 * size}px`,
+                'border-radius': '50%',
+                'overflow': 'hidden',
+                'box-shadow': '0 4px 12px rgba(0, 0, 0, 0.15)'
+            });
+            $preview.html(`<img src="${image}" style="width: 100%; height: 100%; object-fit: cover;">`);
+        } else {
+            $preview.css({
+                'display': 'inline-block',
+                'border-radius': `${12 * size}px`,
+                'overflow': 'hidden',
+                'box-shadow': '0 4px 12px rgba(0, 0, 0, 0.15)',
+                'max-width': '200px'
+            });
+            $preview.html(`<img src="${image}" style="display: block; height: ${40 * size}px; width: auto; object-fit: contain;">`);
+        }
+    } else {
+        const gradient = `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`;
+        
+        if (shape === 'circle') {
+            $preview.css({
+                'width': `${48 * size}px`,
+                'height': `${48 * size}px`,
+                'border-radius': '50%',
+                'background': gradient,
+                'display': 'flex',
+                'align-items': 'center',
+                'justify-content': 'center',
+                'color': '#fff',
+                'font-weight': 'bold',
+                'font-size': `${16 * size}px`,
+                'border': '2px solid rgba(255,255,255,0.3)',
+                'box-shadow': '0 4px 12px rgba(0, 0, 0, 0.15)'
+            });
+            $preview.html('<span>玉</span>');
+        } else {
+            $preview.css({
+                'padding': `${8 * size}px ${14 * size}px`,
+                'border-radius': `${12 * size}px`,
+                'background': gradient,
+                'display': 'inline-flex',
+                'align-items': 'center',
+                'gap': `${6 * size}px`,
+                'color': '#fff',
+                'font-weight': '600',
+                'font-size': `${14 * size}px`,
+                'border': '2px solid rgba(255,255,255,0.3)',
+                'box-shadow': '0 4px 12px rgba(0, 0, 0, 0.15)'
+            });
+            $preview.html(`<span style="display:flex;align-items:center;width:${18*size}px;height:${18*size}px;">${ICONS.store}</span><span>玉子市场</span>`);
+        }
+    }
 }
 
 // ===== 事件绑定 =====
@@ -302,26 +559,6 @@ function bindThemeEditorEvents($window) {
     $window.find('.tamako-editor-btn.save').on('click', () => closeThemeEditor(true));
     $window.find('.tamako-editor-btn.reset').on('click', resetThemeEditor);
     $window.find('.tamako-editor-btn.close').on('click', () => closeThemeEditor(false));
-    
-    $window.find('#tamako-base-theme').on('change', function() {
-        const baseName = this.value;
-        const preset = themes[baseName];
-        if (preset && tempCustomTheme) {
-            tempCustomTheme.basedOn = baseName;
-            tempCustomTheme.colors = {
-                primary: preset.primary,
-                secondary: preset.secondary,
-                bg: preset.bg,
-                surface: preset.surface,
-                surfaceAlt: preset.surfaceAlt,
-                text: preset.text,
-                textMuted: preset.textMuted,
-                border: preset.border
-            };
-            refreshEditorColors();
-            applyTempTheme();
-        }
-    });
     
     $window.find('.tamako-color-preview, .tamako-color-hex').on('click', function(e) {
         e.stopPropagation();
@@ -344,15 +581,7 @@ function bindThemeEditorEvents($window) {
         if (/^#[A-Fa-f0-9]{6}$/.test(value)) {
             updateTempColor(colorKey, value);
             $(this).siblings('.tamako-color-preview').css('background', value);
-            applyTempTheme();
-        }
-    });
-    
-    $window.find('#tamako-border-radius').on('input', function() {
-        const value = parseInt(this.value);
-        $(this).siblings('.tamako-slider-value').text(value + 'px');
-        if (tempCustomTheme) {
-            tempCustomTheme.borderRadius = value;
+            updateButtonPreview();
             applyTempTheme();
         }
     });
@@ -428,7 +657,7 @@ function openColorPicker(colorKey) {
     const $popup = $('#tamako-color-picker-popup');
     updatePickerState({ colorKey });
     
-    const currentColor = $(`.tamako-color-hex[data-color-key="${colorKey}"]`).val() || '#FFB6C1';
+    const currentColor = $(`.tamako-color-hex[data-color-key="${colorKey}"]`).val() || '#9370DB';
     const rgb = hexToRgb(currentColor);
     
     if (rgb) {
@@ -459,6 +688,7 @@ function confirmColorPicker() {
         $(`.tamako-color-preview[data-color-key="${pickerState.colorKey}"]`).css('background', hex);
         $(`.tamako-color-hex[data-color-key="${pickerState.colorKey}"]`).val(hex);
         updateTempColor(pickerState.colorKey, hex);
+        updateButtonPreview();
         applyTempTheme();
     }
     closeColorPicker();
@@ -594,7 +824,7 @@ function startSLDragTouch(e) {
     document.addEventListener('touchend', endHandler);
 }
 
-// ===== 吸管工具（仅 PC 端） =====
+// ===== 吸管工具 =====
 
 export function startEyedropper(colorKey) {
     if (isMobileDevice()) return;
@@ -615,7 +845,7 @@ export function startEyedropper(colorKey) {
     
     $('body').addClass('tamako-eyedropper-mode');
     
-    const $indicator = $('<div class="tamako-eyedropper-indicator">🎯 点击任意位置吸取颜色，ESC取消</div>');
+    const $indicator = $('<div class="tamako-eyedropper-indicator">点击任意位置吸取颜色，ESC取消</div>');
     $('body').append($indicator);
     
     setTimeout(() => {
@@ -635,10 +865,11 @@ async function useNativeEyeDropper() {
             $(`.tamako-color-preview[data-color-key="${currentEditingColor}"]`).css('background', color);
             $(`.tamako-color-hex[data-color-key="${currentEditingColor}"]`).val(color);
             updateTempColor(currentEditingColor, color);
+            updateButtonPreview();
             applyTempTheme();
         }
     } catch (err) {
-        console.log('[玉子市场] EyeDropper 取消或出错:', err);
+        // cancelled
     } finally {
         setEyedropperActive(false);
         setCurrentEditingColor(null);
@@ -706,6 +937,7 @@ function handleEyedropperClick(e) {
         $(`.tamako-color-preview[data-color-key="${currentEditingColor}"]`).css('background', color);
         $(`.tamako-color-hex[data-color-key="${currentEditingColor}"]`).val(color);
         updateTempColor(currentEditingColor, color);
+        updateButtonPreview();
         applyTempTheme();
     }
     
