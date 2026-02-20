@@ -1,7 +1,7 @@
 // modules/constants.js
 /**
  * 玉子市场 - 常量定义
- * @version 2.8.3
+ * @version 2.8.4
  */
 
 export const extensionName = 'TamakoMarket';
