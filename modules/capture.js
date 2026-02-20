@@ -1,7 +1,7 @@
 // modules/capture.js
 /**
  * 玉子市场 - 消息捕获系统
- * @version 2.5.3
+ * @version 2.8.4
  */
 
 import {
@@ -284,3 +284,4 @@ function extractAMCodes(content) {
     const matches = content.match(/AM\d{4}/gi);
     return matches ? [...new Set(matches.map(m => m.toUpperCase()))] : [];
 }
+
