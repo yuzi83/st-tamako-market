@@ -434,6 +434,12 @@ export function updateCurrentContent(content, rawMessage) {
     const searchQuery = getSearchQuery();
     
     if (!content?.trim()) {
+        // 释放 blob URL 防止内存泄漏
+        const $oldIframe = $content.find('.tamako-beautifier-frame');
+        if ($oldIframe.length && $oldIframe[0]._blobUrl) {
+            URL.revokeObjectURL($oldIframe[0]._blobUrl);
+            $oldIframe[0]._blobUrl = null;
+        }
         $content.css('position', '').empty().html(`
             <div class="tamako-empty">
                 <span class="icon">${ICONS.sparkle}</span>
@@ -453,6 +459,13 @@ export function updateCurrentContent(content, rawMessage) {
     }
     
     $content.css('position', '');
+    
+    // 释放 blob URL 防止内存泄漏
+    const $oldIframe = $content.find('.tamako-beautifier-frame');
+    if ($oldIframe.length && $oldIframe[0]._blobUrl) {
+        URL.revokeObjectURL($oldIframe[0]._blobUrl);
+        $oldIframe[0]._blobUrl = null;
+    }
     $content.find('.tamako-beautifier-frame, .tamako-beautifier-loading').remove();
     
     let formatted = content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
