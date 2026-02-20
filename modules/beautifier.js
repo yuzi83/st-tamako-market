@@ -1,7 +1,7 @@
 // modules/beautifier.js
 /**
  * 玉子市场 - 美化器系统
- * @version 2.6.0
+ * @version 2.8.4
  */
 
 import { 
@@ -365,3 +365,4 @@ export function renderWithBeautifier($container, rawMessage, templateData) {
         return false;
     }
 }
+
