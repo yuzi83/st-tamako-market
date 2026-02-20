@@ -183,7 +183,18 @@ function extractFileFromContentTag(chat) {
     return '';
 }
 
+// ===== HTML 转义函数 =====
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // ===== 模板注入 =====
+// 安全说明：保留 allow-same-origin 以支持模板访问 SillyTavern 上下文
+// 用户应仅使用可信来源的模板
 
 function injectDataIntoTemplate(html, rawMessage, fullChatData) {
     const injectionScript = `
@@ -218,6 +229,36 @@ function injectDataIntoTemplate(html, rawMessage, fullChatData) {
         return { chat: window.getSTChat() };
     };
     
+    // ===== TavernHelper 代理注入 (适配回响等模板的世界书访问) =====
+    // 检测是否存在 JS-Slash-Runner 扩展 (TavernHelper)
+    try {
+        var TH = window.parent && window.parent.TavernHelper;
+        if (TH) {
+            // 注入回响模板需要的世界书 API 代理函数
+            window.getChatLorebook = window.getChatLorebook || function() {
+                return TH.getChatLorebook.apply(TH, arguments);
+            };
+            window.getVariables = window.getVariables || function() {
+                return TH.getVariables.apply(TH, arguments);
+            };
+            window.getCharLorebooks = window.getCharLorebooks || function() {
+                return TH.getCharLorebooks.apply(TH, arguments);
+            };
+            window.getCurrentCharPrimaryLorebook = window.getCurrentCharPrimaryLorebook || function() {
+                return TH.getCurrentCharPrimaryLorebook.apply(TH, arguments);
+            };
+            window.getLorebookSettings = window.getLorebookSettings || function() {
+                return TH.getLorebookSettings.apply(TH, arguments);
+            };
+            window.getLorebookEntries = window.getLorebookEntries || function() {
+                return TH.getLorebookEntries.apply(TH, arguments);
+            };
+            console.log('[玉子市场] TavernHelper API 已注入');
+        }
+    } catch(e) {
+        console.log('[玉子市场] TavernHelper 不可用，跳过世界书 API 注入');
+    }
+    
     console.log('[玉子市场] iframe 初始化完成');
 })();
 <\/script>
@@ -243,9 +284,9 @@ export function renderWithBeautifier($container, rawMessage, templateData) {
         let html = templateData.html;
         
         if (html.includes('$1')) {
-            html = html.replace(/\$1/g, function() {
-                return rawMessage || '';
-            });
+            // 对用户内容进行 HTML 转义，防止 XSS 攻击
+            const escapedRawMessage = escapeHtml(rawMessage || '');
+            html = html.replace(/\$1/g, escapedRawMessage);
         }
         
         const fullChatData = extractAllChatData();
