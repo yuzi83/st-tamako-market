@@ -1,14 +1,13 @@
 /* style.css */
 /**
  * 玉子市场 - 样式表
- * @version 2.6.0
+ * @version 2.8.4
  * CSS变量驱动主题系统
- * 新增：模板列表样式
  */
 
 /* ===== 主题变量定义 ===== */
 .tamako-window {
-    /* 主题变量 */
+    /* 默认主题变量 - 浅色系（仅作为备用） */
     --tamako-primary: #FFB6C1;
     --tamako-secondary: #DDA0DD;
     --tamako-bg: linear-gradient(135deg, #FFF5F7 0%, #FFFFFF 50%, #F8F0FF 100%);
@@ -22,24 +21,6 @@
     --tamako-font: 'Segoe UI', 'Microsoft YaHei', sans-serif;
     
     /* 兼容旧代码 */
-    --theme-primary: var(--tamako-primary);
-    --theme-secondary: var(--tamako-secondary);
-}
-
-.tamako-window.theme-ocean {
-    --tamako-primary: #87CEEB;
-    --tamako-secondary: #5F9EA0;
-    --tamako-bg: linear-gradient(135deg, #F0F8FF 0%, #FFFFFF 50%, #E6F3FF 100%);
-    --tamako-surface-alt: #F0F8FF;
-    --theme-primary: var(--tamako-primary);
-    --theme-secondary: var(--tamako-secondary);
-}
-
-.tamako-window.theme-sunflower {
-    --tamako-primary: #FFD700;
-    --tamako-secondary: #FFA500;
-    --tamako-bg: linear-gradient(135deg, #FFFEF0 0%, #FFFFFF 50%, #FFF8E7 100%);
-    --tamako-surface-alt: #FFFEF0;
     --theme-primary: var(--tamako-primary);
     --theme-secondary: var(--tamako-secondary);
 }
@@ -541,22 +522,7 @@ body.tamako-resizing * {
     touch-action: none;
 }
 
-/* 按钮的主题变体 */
-.tamako-toggle.theme-tamako {
-    --theme-primary: #FFB6C1;
-    --theme-secondary: #DDA0DD;
-}
-
-.tamako-toggle.theme-ocean {
-    --theme-primary: #87CEEB;
-    --theme-secondary: #5F9EA0;
-}
-
-.tamako-toggle.theme-sunflower {
-    --theme-primary: #FFD700;
-    --theme-secondary: #FFA500;
-}
-
+/* 按钮的主题变体 - 仅保留实际使用的 */
 .tamako-toggle.theme-night {
     --theme-primary: #9370DB;
     --theme-secondary: #6A5ACD;
@@ -1372,147 +1338,6 @@ body.tamako-eyedropper-mode * {
         padding: 3px 6px;
         font-size: 10px;
     }
-}
-/* ===== 按钮编辑器样式 ===== */
-
-.tamako-button-shape-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 10px;
-}
-
-.tamako-button-shape-row > label {
-    font-size: 12px;
-    color: var(--tamako-text);
-    width: 60px;
-    flex-shrink: 0;
-}
-
-.tamako-button-shape-row .tamako-editor-select {
-    flex: 1;
-}
-
-.tamako-button-image-section {
-    margin-top: 12px;
-}
-
-.tamako-button-image-section > label {
-    display: block;
-    font-size: 12px;
-    color: var(--tamako-text);
-    margin-bottom: 6px;
-}
-
-.tamako-button-image-drop {
-    border: 2px dashed var(--tamako-border);
-    border-radius: 8px;
-    padding: 16px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    background: var(--tamako-surface-alt);
-    min-height: 80px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.tamako-button-image-drop:hover,
-.tamako-button-image-drop.dragover {
-    border-color: var(--tamako-primary);
-    background: rgba(255, 182, 193, 0.1);
-}
-
-.tamako-button-image-placeholder {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    color: var(--tamako-text-muted);
-}
-
-.tamako-button-image-placeholder svg {
-    width: 32px;
-    height: 32px;
-    opacity: 0.5;
-}
-
-.tamako-button-image-placeholder span {
-    font-size: 12px;
-}
-
-.tamako-button-image-placeholder .tamako-hint {
-    font-size: 10px;
-    opacity: 0.6;
-}
-
-.tamako-button-image-preview {
-    max-width: 100%;
-    max-height: 100px;
-    border-radius: 6px;
-    object-fit: contain;
-}
-
-.tamako-btn-remove-image {
-    display: block;
-    width: 100%;
-    margin-top: 8px;
-    padding: 6px 12px;
-    background: rgba(255, 100, 100, 0.1);
-    border: 1px solid rgba(255, 100, 100, 0.3);
-    border-radius: 6px;
-    color: #ff6b6b;
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.tamako-btn-remove-image:hover {
-    background: rgba(255, 100, 100, 0.2);
-    border-color: #ff6b6b;
-}
-
-.tamako-button-preview-container {
-    margin-top: 12px;
-}
-
-.tamako-button-preview-container > label {
-    display: block;
-    font-size: 12px;
-    color: var(--tamako-text);
-    margin-bottom: 6px;
-}
-
-.tamako-button-live-preview {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    cursor: default;
-}
-
-/* ===== 切换按钮变体 ===== */
-
-.tamako-toggle.tamako-toggle-circle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.tamako-toggle.tamako-toggle-has-image .tamako-toggle-icon,
-.tamako-toggle.tamako-toggle-has-image .tamako-toggle-text {
-    display: none !important;
-}
-
-.tamako-toggle.tamako-toggle-circle .tamako-toggle-icon {
-    display: none;
-}
-
-.tamako-toggle.tamako-toggle-circle .tamako-toggle-text {
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 /* ===== 按钮编辑器样式 ===== */
 
