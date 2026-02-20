@@ -1,7 +1,7 @@
 // modules/window.js
 /**
  * 玉子市场 - 窗口管理
- * @version 2.8.1
+ * @version 2.8.4
  */
 
 import { ICONS, themes } from './constants.js';
@@ -582,3 +582,4 @@ export function resetTogglePosition() {
         bottom: 'auto'
     });
 }
+
