@@ -1,7 +1,7 @@
 // modules/utils.js
 /**
  * 玉子市场 - 工具函数
- * @version 2.8.3
+ * @version 2.8.4
  */
 
 import { extensionName, defaultSettings, themes, fontOptions, deraMessages, ICONS, BUTTON_SIZE_DEFAULT } from './constants.js';
@@ -451,3 +451,4 @@ export function showBeautifierFrame($window) {
     const iframe = $window.find('.tamako-beautifier-frame')[0];
     if (iframe) iframe.style.visibility = 'visible';
 }
+
