@@ -106,6 +106,14 @@ SillyTavern 可爱风格悬浮窗扩展，用于捕获和管理特定标签内�
 - `window.getSTChat()` - 获取聊天数据（推荐）
 - `window.getContext()` - 获取 SillyTavern 上下文
 
+**TavernHelper API**：
+- `window.getChatLorebook()` - 获取聊天世界书
+- `window.getVariables()` - 获取变量
+- `window.getCharLorebooks()` - 获取角色世界书
+- `window.getCurrentCharPrimaryLorebook()` - 获取当前角色主世界书
+- `window.getLorebookSettings()` - 获取世界书设置
+- `window.getLorebookEntries()` - 获取世界书条目
+
 **兼容性说明**：美化器完全兼容现有的正则脚本模板（如回响），模板自带的数据获取函数会被优先使用。
 
 ## 🎨 主题编辑器
@@ -167,8 +175,16 @@ SillyTavern 可爱风格悬浮窗扩展，用于捕获和管理特定标签内�
 - 支持所有现代浏览器（Chrome、Firefox、Edge 等）
 - 📱 支持手机端（Android / iOS）
 - 🎭 兼容现有正则脚本模板（如回响 V6）
+- 📚 支持回响模板的世界书功能
 
 ## 📝 更新日志
+
+### v2.8.4
+
+- 📚 **TavernHelper API 注入** - 支持回响等模板的世界书访问（需安装 JS-Slash-Runner 扩展）
+- 🔒 **安全性增强** - 用户内容 HTML 转义，防止 XSS 攻击
+- 🧹 **内存泄漏修复** - 添加扩展销毁函数，清理事件监听器和 blob URL
+- ⚡ **CSS 简化** - 移除未使用的主题变体，精简代码
 
 ### v2.8.3
 
