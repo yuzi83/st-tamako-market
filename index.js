@@ -1,11 +1,14 @@
 // index.js
 /**
  * 玉子市场 - SillyTavern 悬浮窗扩展
- * @version 2.8.1
+ * @version 2.8.4
  */
 
 import { ICONS, themes } from './modules/constants.js';
-import { extensionEnabled, setCapturedPlots, getCapturedPlots } from './modules/state.js';
+import { 
+    extensionEnabled, setCapturedPlots, getCapturedPlots,
+    setMutationObserver, disconnectObserver, clearAllEventListeners
+} from './modules/state.js';
 import {
     isMobileDevice, getSettings, saveSetting, getDefaultTogglePosition, constrainPosition,
     showDeraToast, applyButtonStyles
@@ -191,6 +194,9 @@ function setupMutationObserver() {
         });
         
         observer.observe(chatContainer, { childList: true, subtree: true });
+        
+        // 保存 observer 引用以便清理
+        setMutationObserver(observer);
     } catch (e) {
         console.error('[玉子市场] DOM监听失败:', e);
     }
@@ -295,7 +301,7 @@ function initEventListeners() {
             setTimeout(createSettingsPanel, 2000);
             initEventListeners();
             
-            console.log('[玉子市场] v2.8.1');
+            console.log('[玉子市场] v2.8.4');
         } catch (e) {
             console.error('[玉子市场] 初始化错误:', e);
         }
@@ -307,3 +313,46 @@ function initEventListeners() {
         setTimeout(onReady, 100);
     }
 })();
+
+// ===== 扩展销毁函数 =====
+// 用于清理资源，防止内存泄漏
+// 可在扩展卸载或页面切换时调用
+
+export function destroy() {
+    try {
+        // 断开 MutationObserver
+        disconnectObserver();
+        
+        // 清除所有事件监听器
+        clearAllEventListeners();
+        
+        // 移除 DOM 元素
+        const $window = $('#tamako-market-window');
+        const $toggle = $('#tamako-market-toggle');
+        
+        // 释放 iframe 的 blob URL
+        const iframe = $window.find('.tamako-beautifier-frame')[0];
+        if (iframe && iframe._blobUrl) {
+            URL.revokeObjectURL(iframe._blobUrl);
+            iframe._blobUrl = null;
+        }
+        
+        $window.remove();
+        $toggle.remove();
+        $('#tamako-market-settings').remove();
+        
+        // 清除定时器
+        import('./modules/state.js').then(state => {
+            if (state.validateDebounceTimer) {
+                clearTimeout(state.validateDebounceTimer);
+            }
+            if (state.beautifierLoadTimeout) {
+                clearTimeout(state.beautifierLoadTimeout);
+            }
+        });
+        
+        console.log('[玉子市场] 扩展已卸载');
+    } catch (e) {
+        console.error('[玉子市场] 卸载错误:', e);
+    }
+}
