@@ -1,7 +1,7 @@
 // modules/state.js
 /**
  * 玉子市场 - 状态管理
- * @version 2.6.0
+ * @version 2.8.4
  */
 
 // 全局状态
@@ -23,6 +23,10 @@ export let cachedTemplateId = null;  // 新增：缓存的模板ID
 // 定时器
 export let validateDebounceTimer = null;
 export let beautifierLoadTimeout = null;
+
+// 事件追踪（用于清理）
+export let mutationObserver = null;
+export let registeredEventListeners = [];
 
 // 拖拽状态
 export let resizeState = {
@@ -157,4 +161,32 @@ export function resetDragState() {
         offsetY: 0,
         pointerId: null
     };
+}
+
+// ===== 事件追踪函数 =====
+
+export function setMutationObserver(observer) {
+    mutationObserver = observer;
+}
+
+export function addEventListenerCleanup(target, type, handler, options) {
+    registeredEventListeners.push({ target, type, handler, options });
+}
+
+export function clearAllEventListeners() {
+    registeredEventListeners.forEach(({ target, type, handler, options }) => {
+        try {
+            target.removeEventListener(type, handler, options);
+        } catch (e) {}
+    });
+    registeredEventListeners = [];
+}
+
+export function disconnectObserver() {
+    if (mutationObserver) {
+        try {
+            mutationObserver.disconnect();
+        } catch (e) {}
+        mutationObserver = null;
+    }
 }
