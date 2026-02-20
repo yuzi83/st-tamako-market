@@ -869,7 +869,10 @@ async function useNativeEyeDropper() {
             applyTempTheme();
         }
     } catch (err) {
-        // cancelled
+        // 用户取消或发生错误，静默处理
+        if (err?.name !== 'AbortError') {
+            console.debug('[玉子市场] 吸管工具:', err?.message || '已取消');
+        }
     } finally {
         setEyedropperActive(false);
         setCurrentEditingColor(null);
