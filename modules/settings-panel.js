@@ -1,7 +1,7 @@
 // modules/settings-panel.js
 /**
  * 玉子市场 - 设置面板
- * @version 2.6.0
+ * @version 2.8.4
  */
 
 import { ICONS, MAX_TEMPLATES } from './constants.js';
@@ -523,3 +523,4 @@ export function updateCaptureCount() {
     $('#tamako-count').text(capturedPlots.length);
     $('#tamako-history-count').text(capturedPlots.length);
 }
+
