@@ -1,7 +1,7 @@
 // modules/theme-editor.js
 /**
  * 玉子市场 - 主题编辑器
- * @version 2.8.4
+ * @version 2.8.5
  */
 
 import { ICONS, themes, fontOptions, BUTTON_SIZE_MIN, BUTTON_SIZE_MAX, BUTTON_SIZE_DEFAULT } from './constants.js';
