@@ -1,7 +1,7 @@
 /* style.css */
 /**
  * 玉子市场 - 样式表
- * @version 2.8.4
+ * @version 2.8.5
  * CSS变量驱动主题系统
  */
 
@@ -1690,5 +1690,6 @@ body.tamako-eyedropper-mode * {
     backdrop-filter: blur(10px);
     box-shadow: 0 4px 15px rgba(147, 112, 219, 0.4);
 }
+
 
 
