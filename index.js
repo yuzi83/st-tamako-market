@@ -1,13 +1,15 @@
 // index.js
 /**
  * 玉子市场 - SillyTavern 悬浮窗扩展
- * @version 2.8.4
+ * @version 2.8.5
  */
 
 import { ICONS, themes } from './modules/constants.js';
-import { 
+import {
     extensionEnabled, setCapturedPlots, getCapturedPlots,
-    setMutationObserver, disconnectObserver, clearAllEventListeners
+    setMutationObserver, disconnectObserver, clearAllEventListeners,
+    addEventListenerCleanup, addEventSourceListenerCleanup, clearAllEventSourceListeners,
+    setExtensionEnabled
 } from './modules/state.js';
 import {
     isMobileDevice, getSettings, saveSetting, getDefaultTogglePosition, constrainPosition,
@@ -76,7 +78,11 @@ function initToggleDraggable($toggle) {
     let pointerId = null;
     const DRAG_THRESHOLD = 5;
     
-    btn.addEventListener('contextmenu', e => e.preventDefault());
+    function onContextMenu(e) {
+        e.preventDefault();
+    }
+    btn.addEventListener('contextmenu', onContextMenu);
+    addEventListenerCleanup(btn, 'contextmenu', onContextMenu);
     
     function onPointerDown(e) {
         startTime = Date.now();
@@ -142,6 +148,10 @@ function initToggleDraggable($toggle) {
     btn.addEventListener('pointermove', onPointerMove);
     btn.addEventListener('pointerup', onPointerUp);
     btn.addEventListener('pointercancel', onPointerUp);
+    addEventListenerCleanup(btn, 'pointerdown', onPointerDown);
+    addEventListenerCleanup(btn, 'pointermove', onPointerMove);
+    addEventListenerCleanup(btn, 'pointerup', onPointerUp);
+    addEventListenerCleanup(btn, 'pointercancel', onPointerUp);
 }
 
 // ===== 事件监听 =====
@@ -217,6 +227,7 @@ function createCallbacks() {
 }
 
 let initialScanDone = false;
+let chatChangeScanTimer = null;
 
 function doScanAndUpdate() {
     const callbacks = createCallbacks();
@@ -238,39 +249,53 @@ function initEventListeners() {
         const callbacks = createCallbacks();
         
         if (context?.eventSource) {
-            const chatChangedEvents = ['chat_changed', 'chatchanged', 'CHAT_CHANGED'];
-            for (const eventName of chatChangedEvents) {
+            const registerEventSourceListener = (eventName, handler) => {
                 try {
-                    context.eventSource.on(eventName, () => {
-                        setCapturedPlots([]);
-                        setTimeout(() => doScanAndUpdate(), 800);
-                    });
+                    context.eventSource.on(eventName, handler);
+                    addEventSourceListenerCleanup(context.eventSource, eventName, handler);
                 } catch (e) {}
+            };
+
+            const chatChangedEvents = [...new Set(['chat_changed', 'chatchanged', 'CHAT_CHANGED'])];
+            let lastChatChangeAt = 0;
+            const onChatChanged = () => {
+                const now = Date.now();
+                if (now - lastChatChangeAt < 250) return;
+                lastChatChangeAt = now;
+
+                setCapturedPlots([]);
+                if (chatChangeScanTimer) clearTimeout(chatChangeScanTimer);
+                chatChangeScanTimer = setTimeout(() => {
+                    doScanAndUpdate();
+                    chatChangeScanTimer = null;
+                }, 800);
+            };
+
+            for (const eventName of chatChangedEvents) {
+                registerEventSourceListener(eventName, onChatChanged);
             }
-            
-            context.eventSource.on('message_sent', (idx) => {
+
+            registerEventSourceListener('message_sent', (idx) => {
                 setTimeout(() => handleUserMessage(idx, callbacks), 300);
             });
-            
-            context.eventSource.on('message_rendered', (idx) => {
+
+            registerEventSourceListener('message_rendered', (idx) => {
                 if (SillyTavern.getContext()?.chat?.[idx]?.is_user) {
                     setTimeout(() => handleUserMessage(idx, callbacks), 200);
                 }
             });
-            
-            context.eventSource.on('generation_started', () => {
+
+            registerEventSourceListener('generation_started', () => {
                 setTimeout(() => checkLatestUserMessage(callbacks), 300);
             });
-            
-            context.eventSource.on('generation_ended', () => {
+
+            registerEventSourceListener('generation_ended', () => {
                 setTimeout(() => checkLatestUserMessage(callbacks), 300);
             });
-            
+
             const deleteEvents = ['message_deleted', 'message_removed', 'chat_updated', 'message_edited', 'message_swiped'];
             for (const eventName of deleteEvents) {
-                try {
-                    context.eventSource.on(eventName, () => validateCapturedPlots(callbacks));
-                } catch (e) {}
+                registerEventSourceListener(eventName, () => validateCapturedPlots(callbacks));
             }
         }
         
@@ -296,12 +321,15 @@ function initEventListeners() {
 (function init() {
     const onReady = () => {
         try {
+            const settings = getSettings();
+            setExtensionEnabled(settings.enabled !== false);
+
             createWindow();
             createToggleButton();
             setTimeout(createSettingsPanel, 2000);
             initEventListeners();
             
-            console.log('[玉子市场] v2.8.4');
+            console.log('[玉子市场] v2.8.5');
         } catch (e) {
             console.error('[玉子市场] 初始化错误:', e);
         }
@@ -325,6 +353,12 @@ export function destroy() {
         
         // 清除所有事件监听器
         clearAllEventListeners();
+        clearAllEventSourceListeners();
+
+        if (chatChangeScanTimer) {
+            clearTimeout(chatChangeScanTimer);
+            chatChangeScanTimer = null;
+        }
         
         // 移除 DOM 元素
         const $window = $('#tamako-market-window');
