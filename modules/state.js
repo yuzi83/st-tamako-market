@@ -1,7 +1,7 @@
 // modules/state.js
 /**
  * 玉子市场 - 状态管理
- * @version 2.8.4
+ * @version 2.8.5
  */
 
 // 全局状态
@@ -27,6 +27,7 @@ export let beautifierLoadTimeout = null;
 // 事件追踪（用于清理）
 export let mutationObserver = null;
 export let registeredEventListeners = [];
+export let registeredEventSourceListeners = [];
 
 // 拖拽状态
 export let resizeState = {
@@ -180,6 +181,29 @@ export function clearAllEventListeners() {
         } catch (e) {}
     });
     registeredEventListeners = [];
+}
+
+export function addEventSourceListenerCleanup(eventSource, type, handler) {
+    registeredEventSourceListeners.push({ eventSource, type, handler });
+}
+
+export function clearAllEventSourceListeners() {
+    registeredEventSourceListeners.forEach(({ eventSource, type, handler }) => {
+        try {
+            if (typeof eventSource?.off === 'function') {
+                eventSource.off(type, handler);
+                return;
+            }
+            if (typeof eventSource?.removeListener === 'function') {
+                eventSource.removeListener(type, handler);
+                return;
+            }
+            if (typeof eventSource?.removeEventListener === 'function') {
+                eventSource.removeEventListener(type, handler);
+            }
+        } catch (e) {}
+    });
+    registeredEventSourceListeners = [];
 }
 
 export function disconnectObserver() {
