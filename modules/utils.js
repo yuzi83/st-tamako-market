@@ -1,7 +1,7 @@
 // modules/utils.js
 /**
  * 玉子市场 - 工具函数
- * @version 2.8.4
+ * @version 2.8.5
  */
 
 import { extensionName, defaultSettings, themes, fontOptions, deraMessages, ICONS, BUTTON_SIZE_DEFAULT } from './constants.js';
