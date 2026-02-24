@@ -1,7 +1,7 @@
 // modules/beautifier.js
 /**
  * 玉子市场 - 美化器系统
- * @version 2.8.4
+ * @version 2.8.5
  */
 
 import {
