@@ -1,7 +1,7 @@
 // modules/capture.js
 /**
  * 玉子市场 - 消息捕获系统
- * @version 2.8.4
+ * @version 2.8.5
  */
 
 import {
@@ -200,68 +200,64 @@ function doValidateCapturedPlots(callbacks = {}) {
     try {
         const context = SillyTavern.getContext();
         if (!context?.chat) return;
-        
-        const chatLength = context.chat.length;
+
         const currentPlots = getCapturedPlots();
-        const originalLength = currentPlots.length;
-        
-        let validPlots = currentPlots.filter(plot => {
-            if (plot.messageIndex >= chatLength) return false;
-            const msg = context.chat[plot.messageIndex];
-            if (!msg || !msg.is_user || !msg.mes) return false;
-            
-            const tags = getSettings().captureTags || [];
-            for (const tag of tags) {
-                if (plot.content.includes(`<${tag}`) && msg.mes.includes(`<${tag}`)) {
-                    return true;
-                }
+        const settings = getSettings();
+        const maxStore = settings.maxStoredPlots || 50;
+
+        let hasChange = false;
+        const validatedPlots = [];
+
+        for (const plot of currentPlots) {
+            const msg = context.chat?.[plot.messageIndex];
+            if (!msg || !msg.is_user || !msg.mes) {
+                hasChange = true;
+                continue;
             }
-            return false;
-        });
-        
-        if (validPlots.length !== originalLength) {
-            validPlots = [];
-            const settings = getSettings();
-            const maxScan = settings.maxScanMessages || 50;
-            const maxStore = settings.maxStoredPlots || 50;
-            let scannedCount = 0;
-            
-            for (let i = chatLength - 1; i >= 0 && scannedCount < maxScan; i--) {
-                if (!context.chat[i]?.is_user) continue;
-                scannedCount++;
-                
-                const extracted = extractPlotContent(context.chat[i].mes);
-                if (!extracted) continue;
-                
-                validPlots.push({
-                    content: extracted.content,
-                    rawMessage: extracted.rawMessage,
-                    timestamp: Date.now() - (chatLength - i) * 1000,
-                    messageIndex: i
-                });
+
+            const extracted = extractPlotContent(msg.mes);
+            if (!extracted) {
+                hasChange = true;
+                continue;
             }
-            
-            validPlots.sort((a, b) => a.messageIndex - b.messageIndex);
-            if (validPlots.length > maxStore) {
-                validPlots = validPlots.slice(-maxStore);
+
+            const mergedPlot = {
+                ...plot,
+                content: extracted.content,
+                rawMessage: extracted.rawMessage
+            };
+
+            if (mergedPlot.content !== plot.content || mergedPlot.rawMessage !== plot.rawMessage) {
+                hasChange = true;
             }
-            
-            setCapturedPlots(validPlots);
-            
-            if (validPlots.length > 0) {
-                const latest = validPlots[validPlots.length - 1];
-                if (callbacks.onUpdate) {
-                    callbacks.onUpdate(latest.content, latest.rawMessage);
-                }
+
+            validatedPlots.push(mergedPlot);
+        }
+
+        validatedPlots.sort((a, b) => a.messageIndex - b.messageIndex);
+        let finalPlots = validatedPlots;
+        if (finalPlots.length > maxStore) {
+            finalPlots = finalPlots.slice(-maxStore);
+            hasChange = true;
+        }
+
+        if (!hasChange && finalPlots.length === currentPlots.length) {
+            return;
+        }
+
+        setCapturedPlots(finalPlots);
+
+        if (callbacks.onUpdate) {
+            if (finalPlots.length > 0) {
+                const latest = finalPlots[finalPlots.length - 1];
+                callbacks.onUpdate(latest.content, latest.rawMessage);
             } else {
-                if (callbacks.onUpdate) {
-                    callbacks.onUpdate('', '');
-                }
+                callbacks.onUpdate('', '');
             }
-            
-            if (callbacks.onHistoryUpdate) {
-                callbacks.onHistoryUpdate();
-            }
+        }
+
+        if (callbacks.onHistoryUpdate) {
+            callbacks.onHistoryUpdate();
         }
     } catch (e) {
         console.error('[玉子市场] 验证捕获记录失败:', e);
