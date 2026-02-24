@@ -1,7 +1,7 @@
 // modules/settings-panel.js
 /**
  * 玉子市场 - 设置面板
- * @version 2.8.4
+ * @version 2.8.5
  */
 
 import { ICONS, MAX_TEMPLATES } from './constants.js';
@@ -109,8 +109,13 @@ export function createSettingsPanel() {
     bindButtonEvents();
     updateTemplateUI();
     
+    setExtensionEnabled(isEnabled);
+
     if (!isEnabled) {
         $('#tamako-market-toggle').hide();
+        $('#tamako-market-window').removeClass('visible');
+    } else {
+        $('#tamako-market-toggle').show();
     }
 }
 
