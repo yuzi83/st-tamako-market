@@ -4,7 +4,7 @@
  * @version 2.8.4
  */
 
-import { 
+import {
     cachedTemplate, cachedTemplateSource, cachedTemplateId, beautifierLoadTimeout,
     setCachedTemplate, setBeautifierLoadTimeout, clearTemplateCache as clearCache,
     getCachedTemplateId
@@ -17,21 +17,21 @@ export { clearCache as clearTemplateCache };
 
 export function parseBeautifierTemplate(input, templateId = null) {
     if (!input?.trim()) return null;
-    
+
     // 如果有模板ID且与缓存匹配，直接返回缓存
     if (templateId && templateId === getCachedTemplateId() && cachedTemplate) {
         return cachedTemplate;
     }
-    
+
     // 如果没有模板ID，使用内容匹配
     if (!templateId && input === cachedTemplateSource && cachedTemplate) {
         return cachedTemplate;
     }
-    
+
     const trimmed = input.trim();
     let result = null;
     let regexInfo = null;
-    
+
     // 尝试解析 JSON
     try {
         const json = JSON.parse(trimmed);
@@ -42,7 +42,7 @@ export function parseBeautifierTemplate(input, templateId = null) {
                 .replace(/^```\s*\n?/, '')
                 .replace(/\n?```\s*$/, '')
                 .trim();
-            
+
             if (htmlContent.includes('<!DOCTYPE') || htmlContent.includes('<html') || htmlContent.includes('<body')) {
                 result = htmlContent;
                 if (json.findRegex) {
@@ -50,8 +50,8 @@ export function parseBeautifierTemplate(input, templateId = null) {
                 }
             }
         }
-    } catch (e) {}
-    
+    } catch (e) { }
+
     // 直接解析 HTML
     if (!result) {
         let htmlContent = trimmed;
@@ -66,18 +66,18 @@ export function parseBeautifierTemplate(input, templateId = null) {
             result = htmlContent;
         }
     }
-    
+
     // 检查 body 标签
     if (!result && trimmed.includes('<body') && trimmed.includes('</body>')) {
         result = trimmed;
     }
-    
-    if (result) { 
+
+    if (result) {
         const parsed = { html: result, regexInfo };
         setCachedTemplate(parsed, input, templateId);
         return parsed;
     }
-    
+
     return null;
 }
 
@@ -102,11 +102,11 @@ export function getActiveTemplateData() {
 
 export function extractAllChatData() {
     const data = { chat: [], tags: {} };
-    
+
     try {
         const context = SillyTavern.getContext();
         if (!context?.chat) return data;
-        
+
         data.chat = context.chat.map((msg) => {
             if (!msg) return null;
             return {
@@ -121,7 +121,7 @@ export function extractAllChatData() {
                 }).filter(Boolean) : null
             };
         }).filter(Boolean);
-        
+
         const tagNames = ['stage', 'recall', 'prologue', 'plot', 'cast', 'scene_direction', 'content', 'file'];
         for (const tag of tagNames) {
             data.tags[tag] = extractTagFromChatHistory(context.chat, tag);
@@ -130,14 +130,14 @@ export function extractAllChatData() {
     } catch (e) {
         console.error('[玉子市场] 提取聊天数据失败:', e);
     }
-    
+
     return data;
 }
 
 function extractTagFromChatHistory(chat, tagName) {
     if (!chat) return '';
     const regex = new RegExp(`(?<!\`)<${tagName}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tagName}>(?!\`)`, 'i');
-    
+
     for (let i = chat.length - 1; i >= 0; i--) {
         const msg = chat[i];
         if (!msg) continue;
@@ -263,9 +263,9 @@ function injectDataIntoTemplate(html, rawMessage, fullChatData) {
 })();
 <\/script>
 `;
-    
+
     let modifiedHtml = html;
-    
+
     if (modifiedHtml.includes('</head>')) {
         modifiedHtml = modifiedHtml.replace('</head>', injectionScript + '</head>');
     } else if (modifiedHtml.includes('<body')) {
@@ -273,7 +273,7 @@ function injectDataIntoTemplate(html, rawMessage, fullChatData) {
     } else {
         modifiedHtml = injectionScript + modifiedHtml;
     }
-    
+
     return modifiedHtml;
 }
 
@@ -282,26 +282,33 @@ function injectDataIntoTemplate(html, rawMessage, fullChatData) {
 export function renderWithBeautifier($container, rawMessage, templateData) {
     try {
         let html = templateData.html;
-        
+
         if (html.includes('$1')) {
-            // 对用户内容进行 HTML 转义，防止 XSS 攻击
+            // 第一步：对 <script type="text/plain"> 内的 $1 使用原始内容（textContent 读取，天然安全）
+            html = html.replace(
+                /(<script\b[^>]*type\s*=\s*["']text\/plain["'][^>]*>)([\s\S]*?)(<\/script>)/gi,
+                (match, openTag, inner, closeTag) => {
+                    return openTag + inner.replace(/\$1/g, rawMessage || '') + closeTag;
+                }
+            );
+            // 第二步：对剩余位置的 $1 进行 HTML 转义，防止 XSS 攻击
             const escapedRawMessage = escapeHtml(rawMessage || '');
             html = html.replace(/\$1/g, escapedRawMessage);
         }
-        
+
         const fullChatData = extractAllChatData();
         html = injectDataIntoTemplate(html, rawMessage, fullChatData);
-        
+
         $container.css('position', 'relative');
-        
+
         let iframe = $container.find('.tamako-beautifier-frame')[0];
         let $loading = $container.find('.tamako-beautifier-loading');
-        
+
         if (beautifierLoadTimeout) {
             clearTimeout(beautifierLoadTimeout);
             setBeautifierLoadTimeout(null);
         }
-        
+
         if (!iframe || !$loading.length) {
             $container.empty();
             $container.append(`
@@ -314,20 +321,20 @@ export function renderWithBeautifier($container, rawMessage, templateData) {
             iframe = $container.find('.tamako-beautifier-frame')[0];
             $loading = $container.find('.tamako-beautifier-loading');
         }
-        
+
         if (!iframe) return false;
-        
+
         const $iframe = $(iframe);
         $iframe.css('opacity', '0');
         $loading.show();
-        
+
         if (iframe._blobUrl) {
             URL.revokeObjectURL(iframe._blobUrl);
             iframe._blobUrl = null;
         }
-        
+
         iframe.onload = null;
-        iframe.onload = function() {
+        iframe.onload = function () {
             if (beautifierLoadTimeout) {
                 clearTimeout(beautifierLoadTimeout);
                 setBeautifierLoadTimeout(null);
@@ -337,7 +344,7 @@ export function renderWithBeautifier($container, rawMessage, templateData) {
                 $iframe.css('opacity', '1');
             }, 50);
         };
-        
+
         setBeautifierLoadTimeout(setTimeout(() => {
             if ($loading.is(':visible')) {
                 console.warn('[玉子市场] iframe 加载超时，强制显示');
@@ -345,20 +352,20 @@ export function renderWithBeautifier($container, rawMessage, templateData) {
                 $iframe.css('opacity', '1');
             }
         }, 3000));
-        
+
         const dataPayload = JSON.stringify({
             chat: fullChatData.chat,
             tags: fullChatData.tags,
             raw: rawMessage
         });
-        
+
         const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
         const blobUrl = URL.createObjectURL(blob);
         iframe._blobUrl = blobUrl;
-        
+
         iframe.name = 'TAMAKO_DATA:' + dataPayload;
         iframe.src = blobUrl;
-        
+
         return true;
     } catch (e) {
         console.error('[玉子市场] 美化器渲染失败:', e);
