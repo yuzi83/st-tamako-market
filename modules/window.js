@@ -1,7 +1,7 @@
 // modules/window.js
 /**
  * 玉子市场 - 窗口管理
- * @version 2.8.4
+ * @version 2.8.5
  */
 
 import { ICONS, themes } from './constants.js';
@@ -9,7 +9,8 @@ import {
     getCapturedPlots, getDeleteMode, getSearchQuery,
     resizeState, dragState,
     setCapturedPlots, setDeleteMode, setSearchQuery,
-    updateResizeState, updateDragState
+    updateResizeState, updateDragState,
+    addEventListenerCleanup
 } from './state.js';
 import {
     isMobileDevice, getSettings, saveSetting, getDefaultWindowPosition, getDefaultTogglePosition,
@@ -122,7 +123,11 @@ export function createWindow() {
 function initDraggable($window) {
     const header = $window.find('.tamako-header')[0];
     
-    header.addEventListener('contextmenu', e => e.preventDefault());
+    function onHeaderContextMenu(e) {
+        e.preventDefault();
+    }
+    header.addEventListener('contextmenu', onHeaderContextMenu);
+    addEventListenerCleanup(header, 'contextmenu', onHeaderContextMenu);
     
     function onPointerDown(e) {
         if (e.target.closest('.tamako-btn, .tamako-controls')) return;
@@ -183,6 +188,10 @@ function initDraggable($window) {
     header.addEventListener('pointermove', onPointerMove);
     header.addEventListener('pointerup', onPointerUp);
     header.addEventListener('pointercancel', onPointerUp);
+    addEventListenerCleanup(header, 'pointerdown', onPointerDown);
+    addEventListenerCleanup(header, 'pointermove', onPointerMove);
+    addEventListenerCleanup(header, 'pointerup', onPointerUp);
+    addEventListenerCleanup(header, 'pointercancel', onPointerUp);
 }
 
 // ===== 缩放 =====
@@ -194,7 +203,11 @@ function initResizable($window) {
     $window.find('.tamako-resize').each(function() {
         const handle = this;
         
-        handle.addEventListener('contextmenu', e => e.preventDefault());
+        function onHandleContextMenu(e) {
+            e.preventDefault();
+        }
+        handle.addEventListener('contextmenu', onHandleContextMenu);
+        addEventListenerCleanup(handle, 'contextmenu', onHandleContextMenu);
         
         function onPointerDown(e) {
             e.preventDefault();
@@ -266,6 +279,10 @@ function initResizable($window) {
         handle.addEventListener('pointermove', onPointerMove);
         handle.addEventListener('pointerup', onPointerUp);
         handle.addEventListener('pointercancel', onPointerUp);
+        addEventListenerCleanup(handle, 'pointerdown', onPointerDown);
+        addEventListenerCleanup(handle, 'pointermove', onPointerMove);
+        addEventListenerCleanup(handle, 'pointerup', onPointerUp);
+        addEventListenerCleanup(handle, 'pointercancel', onPointerUp);
     });
 }
 
