@@ -1,7 +1,7 @@
 // modules/window.js
 /**
  * 玉子市场 - 窗口管理
- * @version 2.8.5
+ * @version 2.9.0
  */
 
 import { ICONS, themes } from './constants.js';
@@ -14,6 +14,7 @@ import {
 } from './state.js';
 import {
     isMobileDevice, getSettings, saveSetting, getDefaultWindowPosition, getDefaultTogglePosition,
+    getDefaultPhoneTogglePosition,
     constrainPosition, getDeraMessage, showDeraToast, highlightText,
     extractAMCodes, formatAMCodes, hideBeautifierFrame, showBeautifierFrame,
     getActiveTemplate
@@ -61,13 +62,13 @@ export function createWindow() {
                 <button class="tamako-tab" data-tab="history">${ICONS.box}<span>库存 (<span id="tamako-history-count">0</span>)</span></button>
             </div>
             <div id="tamako-dera-toast" class="tamako-toast"></div>
-            <div class="tamako-content" data-content="current">
+            <div class="tamako-content is-active" data-content="current">
                 <div class="tamako-empty">
                     <span class="icon">${ICONS.sparkle}</span>
                     <span class="message">${getDeraMessage('empty')}</span>
                 </div>
             </div>
-            <div class="tamako-content" data-content="history" style="display: none;">
+            <div class="tamako-content" data-content="history">
                 <div class="tamako-search">
                     ${ICONS.search}
                     <input type="text" id="tamako-search-input" placeholder="搜索...">
@@ -347,8 +348,8 @@ function bindWindowEvents($window) {
         const tab = $(this).data('tab');
         $window.find('.tamako-tab').removeClass('active');
         $(this).addClass('active');
-        $window.find('.tamako-content').hide();
-        $window.find(`.tamako-content[data-content="${tab}"]`).show();
+        $window.find('.tamako-content').removeClass('is-active');
+        $window.find(`.tamako-content[data-content="${tab}"]`).addClass('is-active');
     });
     
     let searchTimeout = null;
@@ -598,5 +599,309 @@ export function resetTogglePosition() {
         right: 'auto',
         bottom: 'auto'
     });
+}
+
+export function resetPhoneTogglePosition() {
+    const $toggle = $('#tamako-phone-toggle');
+    const pos = getDefaultPhoneTogglePosition();
+    
+    saveSetting('phoneToggleX', null);
+    saveSetting('phoneToggleY', null);
+    
+    $toggle.css({
+        left: pos.x + 'px',
+        top: pos.y + 'px',
+        right: 'auto',
+        bottom: 'auto'
+    });
+}
+
+// ===== 独立手机 =====
+
+export function createPhoneContainer() {
+    if (document.getElementById('tamako-phone-standalone')) {
+        return $('#tamako-phone-standalone');
+    }
+
+    const settings = getSettings();
+
+    // 只创建一个裸定位容器，phone-core 会在里面渲染 phone-shell + 缩放句柄
+    const phoneHtml = `<div id="tamako-phone-standalone" class="tamako-phone-standalone"></div>`;
+    document.body.insertAdjacentHTML('beforeend', phoneHtml);
+
+    const $phone = $('#tamako-phone-standalone');
+
+    const defaultWidth = 320;
+    const defaultHeight = 640;
+    const savedWidth = Number(settings.phoneContainerWidth);
+    const savedHeight = Number(settings.phoneContainerHeight);
+    const width = Number.isFinite(savedWidth) && savedWidth > 0 ? savedWidth : defaultWidth;
+    const height = Number.isFinite(savedHeight) && savedHeight > 0 ? savedHeight : defaultHeight;
+
+    // 默认位置：屏幕右侧偏下
+    const defaultX = Math.max(10, window.innerWidth - width - 40);
+    const defaultY = Math.max(60, Math.floor((window.innerHeight - height) / 2));
+    const savedX = Number(settings.phoneContainerX);
+    const savedY = Number(settings.phoneContainerY);
+    const initialX = Number.isFinite(savedX) ? savedX : defaultX;
+    const initialY = Number.isFinite(savedY) ? savedY : defaultY;
+    const constrained = constrainPosition(initialX, initialY, width, height);
+
+    $phone.css({
+        left: constrained.x + 'px',
+        top: constrained.y + 'px',
+        width: width + 'px',
+        height: height + 'px'
+    });
+
+    return $phone;
+}
+
+/**
+ * 在手机 shell 渲染完成后初始化拖拽
+ * 拖拽区域 = phone-notch + phone-status-bar（手机顶部区域）
+ */
+export function initPhoneShellDrag() {
+    const $phone = $('#tamako-phone-standalone');
+    const shell = $phone.find('.phone-shell')[0];
+    if (!shell) return;
+
+    // 用 notch 和 status-bar 作为拖拽把手
+    const notch = shell.querySelector('.phone-notch');
+    const statusBar = shell.querySelector('.phone-status-bar');
+
+    let isDragging = false;
+    let offsetX = 0, offsetY = 0;
+    let pointerId = null;
+
+    function onContextMenu(e) { e.preventDefault(); }
+
+    function onPointerDown(e) {
+        if ($phone.hasClass('resizing')) return;
+
+        isDragging = true;
+        pointerId = e.pointerId;
+        const rect = $phone[0].getBoundingClientRect();
+        offsetX = e.clientX - rect.left;
+        offsetY = e.clientY - rect.top;
+        e.target.setPointerCapture(e.pointerId);
+        $phone.addClass('dragging');
+        e.preventDefault();
+    }
+
+    function onPointerMove(e) {
+        if (!isDragging || e.pointerId !== pointerId) return;
+        const constrained = constrainPosition(
+            e.clientX - offsetX,
+            e.clientY - offsetY,
+            $phone[0].offsetWidth,
+            $phone[0].offsetHeight
+        );
+        $phone[0].style.left = constrained.x + 'px';
+        $phone[0].style.top = constrained.y + 'px';
+        e.preventDefault();
+    }
+
+    function onPointerUp(e) {
+        if (!isDragging || e.pointerId !== pointerId) return;
+        isDragging = false;
+        try { e.target.releasePointerCapture(e.pointerId); } catch (err) {}
+        $phone.removeClass('dragging');
+        saveSetting('phoneContainerX', parseInt($phone.css('left')));
+        saveSetting('phoneContainerY', parseInt($phone.css('top')));
+        pointerId = null;
+    }
+
+    // 给 notch 和 status-bar 都加上拖拽
+    [notch, statusBar].forEach(el => {
+        if (!el) return;
+        el.style.cursor = 'grab';
+        el.style.touchAction = 'none';
+        el.style.pointerEvents = 'auto';
+        el.addEventListener('contextmenu', onContextMenu);
+        el.addEventListener('pointerdown', onPointerDown);
+        el.addEventListener('pointermove', onPointerMove);
+        el.addEventListener('pointerup', onPointerUp);
+        el.addEventListener('pointercancel', onPointerUp);
+        addEventListenerCleanup(el, 'contextmenu', onContextMenu);
+        addEventListenerCleanup(el, 'pointerdown', onPointerDown);
+        addEventListenerCleanup(el, 'pointermove', onPointerMove);
+        addEventListenerCleanup(el, 'pointerup', onPointerUp);
+        addEventListenerCleanup(el, 'pointercancel', onPointerUp);
+    });
+}
+
+/**
+ * 在手机 shell 渲染完成后初始化缩放
+ * 缩放区域 = 右侧(e) + 右下角(se)
+ */
+export function initPhoneShellResize() {
+    const $phone = $('#tamako-phone-standalone');
+    if (!$phone.length) return;
+
+    $phone.find('.tamako-phone-resize').each(function() {
+        const handle = this;
+
+        if (handle.dataset.resizeBound === '1') return;
+        handle.dataset.resizeBound = '1';
+
+        let isResizing = false;
+        let pointerId = null;
+        let dir = '';
+        let startX = 0;
+        let startY = 0;
+        let startWidth = 0;
+        let startHeight = 0;
+        let startLeft = 0;
+        let startTop = 0;
+
+        function onContextMenu(e) {
+            e.preventDefault();
+        }
+
+        function onPointerDown(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            dir = handle.getAttribute('data-dir') || '';
+            const rect = $phone[0].getBoundingClientRect();
+
+            isResizing = true;
+            pointerId = e.pointerId;
+            startX = e.clientX;
+            startY = e.clientY;
+            startWidth = rect.width;
+            startHeight = rect.height;
+            startLeft = rect.left;
+            startTop = rect.top;
+
+            handle.setPointerCapture(e.pointerId);
+            $phone.addClass('resizing');
+        }
+
+        function onPointerMove(e) {
+            if (!isResizing || e.pointerId !== pointerId) return;
+
+            e.preventDefault();
+
+            const minWidth = Math.min(280, window.innerWidth);
+            const minHeight = Math.min(520, window.innerHeight);
+            const maxWidth = Math.max(minWidth, window.innerWidth - startLeft);
+            const maxHeight = Math.max(minHeight, window.innerHeight - startTop);
+
+            let nextWidth = startWidth;
+            let nextHeight = startHeight;
+
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+
+            if (dir.includes('e')) {
+                nextWidth = Math.max(minWidth, Math.min(startWidth + deltaX, maxWidth));
+            }
+            if (dir.includes('s')) {
+                nextHeight = Math.max(minHeight, Math.min(startHeight + deltaY, maxHeight));
+            }
+
+            $phone[0].style.width = Math.round(nextWidth) + 'px';
+            $phone[0].style.height = Math.round(nextHeight) + 'px';
+        }
+
+        function onPointerUp(e) {
+            if (!isResizing || e.pointerId !== pointerId) return;
+
+            isResizing = false;
+
+            try {
+                handle.releasePointerCapture(e.pointerId);
+            } catch (err) {}
+
+            $phone.removeClass('resizing');
+
+            const left = parseInt($phone.css('left')) || 0;
+            const top = parseInt($phone.css('top')) || 0;
+            const constrained = constrainPosition(left, top, $phone[0].offsetWidth, $phone[0].offsetHeight);
+
+            $phone.css({
+                left: constrained.x + 'px',
+                top: constrained.y + 'px'
+            });
+
+            saveSetting('phoneContainerX', constrained.x);
+            saveSetting('phoneContainerY', constrained.y);
+            saveSetting('phoneContainerWidth', $phone[0].offsetWidth);
+            saveSetting('phoneContainerHeight', $phone[0].offsetHeight);
+
+            pointerId = null;
+            dir = '';
+        }
+
+        handle.addEventListener('contextmenu', onContextMenu);
+        handle.addEventListener('pointerdown', onPointerDown);
+        handle.addEventListener('pointermove', onPointerMove);
+        handle.addEventListener('pointerup', onPointerUp);
+        handle.addEventListener('pointercancel', onPointerUp);
+        addEventListenerCleanup(handle, 'contextmenu', onContextMenu);
+        addEventListenerCleanup(handle, 'pointerdown', onPointerDown);
+        addEventListenerCleanup(handle, 'pointermove', onPointerMove);
+        addEventListenerCleanup(handle, 'pointerup', onPointerUp);
+        addEventListenerCleanup(handle, 'pointercancel', onPointerUp);
+    });
+}
+
+export function togglePhone(show) {
+    const $phone = $('#tamako-phone-standalone');
+    const $button = $('#tamako-phone-toggle');
+    show = show ?? !$phone.hasClass('visible');
+
+    if (show) {
+        const settings = getSettings();
+        const hasSavedWidth = Number.isFinite(Number(settings.phoneContainerWidth));
+        const hasSavedHeight = Number.isFinite(Number(settings.phoneContainerHeight));
+
+        const rect = $phone[0].getBoundingClientRect();
+        const minWidth = Math.min(280, window.innerWidth);
+        const minHeight = Math.min(520, window.innerHeight);
+
+        let targetWidth = rect.width;
+        let targetHeight = rect.height;
+
+        // 有历史尺寸时优先保留历史尺寸；无历史尺寸时才按可视区约束并写回
+        if (hasSavedWidth || hasSavedHeight) {
+            const savedWidth = Number(settings.phoneContainerWidth);
+            const savedHeight = Number(settings.phoneContainerHeight);
+            targetWidth = Number.isFinite(savedWidth) ? savedWidth : rect.width;
+            targetHeight = Number.isFinite(savedHeight) ? savedHeight : rect.height;
+        }
+
+        const nextWidth = Math.max(minWidth, Math.min(targetWidth, window.innerWidth));
+        const nextHeight = Math.max(minHeight, Math.min(targetHeight, window.innerHeight));
+
+        if (Math.round(nextWidth) !== Math.round(rect.width) || Math.round(nextHeight) !== Math.round(rect.height)) {
+            $phone.css({
+                width: Math.round(nextWidth) + 'px',
+                height: Math.round(nextHeight) + 'px'
+            });
+
+            if (!hasSavedWidth || !hasSavedHeight) {
+                saveSetting('phoneContainerWidth', Math.round(nextWidth));
+                saveSetting('phoneContainerHeight', Math.round(nextHeight));
+            }
+        }
+
+        const constrained = constrainPosition(rect.left, rect.top, nextWidth, nextHeight);
+        if (Math.round(rect.left) !== constrained.x || Math.round(rect.top) !== constrained.y) {
+            $phone.css({ left: constrained.x + 'px', top: constrained.y + 'px' });
+            saveSetting('phoneContainerX', constrained.x);
+            saveSetting('phoneContainerY', constrained.y);
+        }
+    }
+
+    $phone.toggleClass('visible', show);
+    $button.toggleClass('active', show);
+
+    // 激活手机界面
+    if (show) {
+        import('./phone/phone-core.js').then(mod => mod.onPhoneActivated());
+    }
 }
 

@@ -131,6 +131,7 @@ export const BUTTON_SIZE_DEFAULT = 1.0;
 
 export const defaultSettings = {
     enabled: true,
+    phoneEnabled: true,
     windowX: null,
     windowY: null,
     windowWidth: 380,
@@ -142,6 +143,8 @@ export const defaultSettings = {
     maxStoredPlots: 50,
     toggleX: null,
     toggleY: null,
+    phoneToggleX: null,
+    phoneToggleY: null,
     beautifier: {
         enabled: false,
         activeTemplateId: null,
@@ -209,4 +212,6 @@ export const deraMessages = {
     templateDeleted: ['模板已移除', '删除成功'],
     templateSwitch: ['切换成功', '已应用', '生效了'],
     buttonUpdated: ['按钮更新了', '新造型', '完成'],
+    phoneUpdate: ['更新已触发', '正在更新...'],
+    phoneSettings: ['设置已保存', '配置更新'],
 };

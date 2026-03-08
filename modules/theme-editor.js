@@ -222,8 +222,9 @@ export function openThemeEditor() {
     const $window = $('#tamako-market-window');
     setTempCustomTheme(JSON.parse(JSON.stringify(getCurrentThemeData())));
     
-    $window.find('.tamako-tabs, .tamako-content, .tamako-delete-bar').hide();
+    $window.find('.tamako-tabs, .tamako-delete-bar').hide();
     $window.find('.tamako-theme-panel').hide();
+    $window.find('.tamako-content').removeClass('is-active').removeAttr('style');
     
     const editorHtml = createThemeEditorContent();
     $window.append(`<div class="tamako-editor-container">${editorHtml}</div>`);
@@ -255,7 +256,15 @@ export function closeThemeEditor(save = false) {
     
     setTempCustomTheme(null);
     $window.find('.tamako-editor-container').remove();
-    $window.find('.tamako-tabs, .tamako-content[data-content="current"]').show();
+    $window.find('.tamako-tabs').show();
+    $window.find('.tamako-content').removeAttr('style').removeClass('is-active');
+    const activeTab = String($window.find('.tamako-tab.active').data('tab') || 'current');
+    const $activeContent = $window.find(`.tamako-content[data-content="${activeTab}"]`);
+    if ($activeContent.length) {
+        $activeContent.addClass('is-active');
+    } else {
+        $window.find('.tamako-content[data-content="current"]').addClass('is-active');
+    }
     
     import('./state.js').then(state => {
         if (state.deleteMode) {

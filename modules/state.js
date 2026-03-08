@@ -8,6 +8,7 @@
 export let capturedPlots = [];
 export let deleteMode = false;
 export let extensionEnabled = true;
+export let phoneEnabled = true;
 export let searchQuery = '';
 export let currentTheme = 'tamako';
 export let isThemeEditorOpen = false;
@@ -84,6 +85,10 @@ export function setDeleteMode(mode) {
 
 export function setExtensionEnabled(enabled) {
     extensionEnabled = enabled;
+}
+
+export function setPhoneEnabled(enabled) {
+    phoneEnabled = enabled;
 }
 
 export function setSearchQuery(query) {

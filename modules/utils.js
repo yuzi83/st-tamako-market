@@ -198,6 +198,13 @@ export function getDefaultTogglePosition() {
         : { x: Math.max(10, window.innerWidth - 330), y: 10 };
 }
 
+export function getDefaultPhoneTogglePosition() {
+    const isMobile = isMobileDevice();
+    return isMobile 
+        ? { x: Math.max(10, window.innerWidth - 130), y: Math.max(10, window.innerHeight - 220) } 
+        : { x: Math.max(10, window.innerWidth - 330), y: 60 };
+}
+
 export function constrainPosition(x, y, width, height) {
     return {
         x: Math.max(0, Math.min(x, Math.max(0, window.innerWidth - width))),

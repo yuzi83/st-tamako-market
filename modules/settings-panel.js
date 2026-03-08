@@ -5,10 +5,10 @@
  */
 
 import { ICONS, MAX_TEMPLATES } from './constants.js';
-import { getCapturedPlots, extensionEnabled, setExtensionEnabled } from './state.js';
+import { getCapturedPlots, extensionEnabled, phoneEnabled, setExtensionEnabled, setPhoneEnabled } from './state.js';
 import { getSettings, saveSetting, generateTemplateId, getActiveTemplate, showDeraToast } from './utils.js';
 import { clearTemplateCache, parseBeautifierTemplate, validateTemplate, renderWithBeautifier, getActiveTemplateData } from './beautifier.js';
-import { toggleWindow, updateCurrentContent, resetWindowPosition, resetTogglePosition } from './window.js';
+import { toggleWindow, togglePhone, updateCurrentContent, resetWindowPosition, resetTogglePosition, resetPhoneTogglePosition } from './window.js';
 
 // ===== 设置面板创建 =====
 
@@ -19,6 +19,7 @@ export function createSettingsPanel() {
 
     const settings = getSettings();
     const isEnabled = settings.enabled !== false;
+    const isPhoneEnabled = settings.phoneEnabled !== false;
     
     const html = `
         <div id="tamako-market-settings" class="extension_settings">
@@ -30,8 +31,12 @@ export function createSettingsPanel() {
                 <div class="inline-drawer-content" style="display: none;">
                     <div style="padding: 10px;">
                         <label class="checkbox_label">
-                            <input type="checkbox" id="tamako-enabled" ${isEnabled ? 'checked' : ''}>
-                            <span>启用扩展</span>
+                            <input type="checkbox" id="tamako-market-enabled" ${isEnabled ? 'checked' : ''}>
+                            <span>启用玉子市场</span>
+                        </label>
+                        <label class="checkbox_label">
+                            <input type="checkbox" id="tamako-phone-enabled" ${isPhoneEnabled ? 'checked' : ''}>
+                            <span>启用玉子的手机</span>
                         </label>
                         <label class="checkbox_label">
                             <input type="checkbox" id="tamako-auto-capture" ${settings.autoCapture ? 'checked' : ''}>
@@ -89,9 +94,15 @@ export function createSettingsPanel() {
                         </div>
                         
                         <div class="tamako-btn-group">
-                            <button id="tamako-open-btn" class="menu_button">打开窗口</button>
-                            <button id="tamako-reset-btn" class="menu_button">重置窗口</button>
-                            <button id="tamako-reset-toggle-btn" class="menu_button">重置按钮</button>
+                            <button id="tamako-open-btn" class="menu_button">打开市场</button>
+                            <button id="tamako-open-phone-btn" class="menu_button">打开手机</button>
+                        </div>
+                        <div class="tamako-btn-group">
+                            <button id="tamako-reset-btn" class="menu_button">重置市场窗口</button>
+                            <button id="tamako-reset-toggle-btn" class="menu_button">重置市场按钮</button>
+                        </div>
+                        <div class="tamako-btn-group">
+                            <button id="tamako-reset-phone-toggle-btn" class="menu_button">重置手机按钮</button>
                         </div>
                         
                         <div class="tamako-stats">已捕获: <span id="tamako-count">0</span> 条记录</div>
@@ -110,12 +121,20 @@ export function createSettingsPanel() {
     updateTemplateUI();
     
     setExtensionEnabled(isEnabled);
+    setPhoneEnabled(isPhoneEnabled);
 
     if (!isEnabled) {
         $('#tamako-market-toggle').hide();
         $('#tamako-market-window').removeClass('visible');
     } else {
         $('#tamako-market-toggle').show();
+    }
+
+    if (!isPhoneEnabled) {
+        $('#tamako-phone-toggle').hide();
+        $('#tamako-phone-standalone').removeClass('visible');
+    } else {
+        $('#tamako-phone-toggle').show();
     }
 }
 
@@ -144,8 +163,12 @@ function bindDrawerEvents() {
 // ===== 基本设置事件 =====
 
 function bindBasicSettingsEvents() {
-    $('#tamako-enabled').on('change', function() {
-        setExtensionEnabledWithUI(this.checked);
+    $('#tamako-market-enabled').on('change', function() {
+        setMarketEnabledWithUI(this.checked);
+    });
+
+    $('#tamako-phone-enabled').on('change', function() {
+        setPhoneEnabledWithUI(this.checked);
     });
     
     $('#tamako-auto-capture').on('change', function() {
@@ -172,7 +195,7 @@ function bindBasicSettingsEvents() {
     });
 }
 
-function setExtensionEnabledWithUI(enabled) {
+function setMarketEnabledWithUI(enabled) {
     setExtensionEnabled(enabled);
     saveSetting('enabled', enabled);
     
@@ -182,6 +205,19 @@ function setExtensionEnabledWithUI(enabled) {
     } else {
         $button.hide();
         $('#tamako-market-window').removeClass('visible');
+    }
+}
+
+function setPhoneEnabledWithUI(enabled) {
+    setPhoneEnabled(enabled);
+    saveSetting('phoneEnabled', enabled);
+    
+    const $button = $('#tamako-phone-toggle');
+    if (enabled) {
+        $button.show();
+    } else {
+        $button.hide();
+        $('#tamako-phone-standalone').removeClass('visible');
     }
 }
 
@@ -513,14 +549,23 @@ function escapeHtml(text) {
 function bindButtonEvents() {
     $('#tamako-open-btn').on('click', () => {
         if (!extensionEnabled) {
-            setExtensionEnabledWithUI(true);
-            $('#tamako-enabled').prop('checked', true);
+            setMarketEnabledWithUI(true);
+            $('#tamako-market-enabled').prop('checked', true);
         }
         toggleWindow(true);
+    });
+
+    $('#tamako-open-phone-btn').on('click', () => {
+        if (!phoneEnabled) {
+            setPhoneEnabledWithUI(true);
+            $('#tamako-phone-enabled').prop('checked', true);
+        }
+        togglePhone(true);
     });
     
     $('#tamako-reset-btn').on('click', () => resetWindowPosition());
     $('#tamako-reset-toggle-btn').on('click', () => resetTogglePosition());
+    $('#tamako-reset-phone-toggle-btn').on('click', () => resetPhoneTogglePosition());
 }
 
 export function updateCaptureCount() {
