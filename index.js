@@ -1,24 +1,23 @@
 // index.js
 /**
  * 玉子市场 - SillyTavern 悬浮窗扩展
- * @version 2.9.0
+ * @version 2.8.5
  */
 
 import { ICONS, themes } from './modules/constants.js';
-import { PHONE_ICONS } from './modules/phone/phone-home.js';
 import {
-    extensionEnabled, phoneEnabled, setCapturedPlots, getCapturedPlots,
+    extensionEnabled, setCapturedPlots, getCapturedPlots,
     setMutationObserver, disconnectObserver, clearAllEventListeners,
     addEventListenerCleanup, addEventSourceListenerCleanup, clearAllEventSourceListeners,
-    setExtensionEnabled, setPhoneEnabled
+    setExtensionEnabled
 } from './modules/state.js';
 import {
-    isMobileDevice, getSettings, saveSetting, getDefaultTogglePosition, getDefaultPhoneTogglePosition,
-    constrainPosition, showDeraToast, applyButtonStyles
+    isMobileDevice, getSettings, saveSetting, getDefaultTogglePosition, constrainPosition,
+    showDeraToast, applyButtonStyles
 } from './modules/utils.js';
 import { applyTheme } from './modules/theme-editor.js';
 import { handleUserMessage, checkLatestUserMessage, scanAllMessages, validateCapturedPlots } from './modules/capture.js';
-import { createWindow, toggleWindow, createPhoneContainer, togglePhone, updateCurrentContent, updateHistoryList } from './modules/window.js';
+import { createWindow, toggleWindow, updateCurrentContent, updateHistoryList } from './modules/window.js';
 import { createSettingsPanel, updateCaptureCount } from './modules/settings-panel.js';
 
 // ===== 切换按钮 =====
@@ -145,113 +144,6 @@ function initToggleDraggable($toggle) {
         pointerId = null;
     }
     
-    btn.addEventListener('pointerdown', onPointerDown);
-    btn.addEventListener('pointermove', onPointerMove);
-    btn.addEventListener('pointerup', onPointerUp);
-    btn.addEventListener('pointercancel', onPointerUp);
-    addEventListenerCleanup(btn, 'pointerdown', onPointerDown);
-    addEventListenerCleanup(btn, 'pointermove', onPointerMove);
-    addEventListenerCleanup(btn, 'pointerup', onPointerUp);
-    addEventListenerCleanup(btn, 'pointercancel', onPointerUp);
-}
-
-// ===== 手机切换按钮 =====
-
-function createPhoneToggleButton() {
-    if (document.getElementById('tamako-phone-toggle')) return;
-
-    const settings = getSettings();
-    const isMobile = isMobileDevice();
-
-    const btn = document.createElement('div');
-    btn.id = 'tamako-phone-toggle';
-    btn.className = `tamako-toggle tamako-toggle-phone theme-night ${isMobile ? 'tamako-toggle-mobile' : ''}`;
-    btn.innerHTML = `<span class="tamako-toggle-icon">${PHONE_ICONS.phone}</span><span class="tamako-toggle-text">玉子的手机</span>`;
-    btn.title = '拖拽移动 / 点击打开';
-    document.body.appendChild(btn);
-
-    const defaultPos = getDefaultPhoneTogglePosition();
-    const $btn = $(btn);
-
-    $btn.css({
-        left: (settings.phoneToggleX ?? defaultPos.x) + 'px',
-        top: (settings.phoneToggleY ?? defaultPos.y) + 'px',
-        right: 'auto',
-        bottom: 'auto'
-    });
-
-    // 手机按钮的默认样式：渐变色条形
-    $btn.css({
-        'background': 'linear-gradient(135deg, #5AC8FA 0%, #007AFF 100%)',
-        'border': '2px solid rgba(255,255,255,0.3)',
-        'border-radius': '12px',
-        'padding': '8px 14px',
-        'display': 'flex',
-        'align-items': 'center',
-        'gap': '6px'
-    });
-
-    $btn.find('.tamako-toggle-icon').css({ width: '18px', height: '18px' }).find('svg').css({ width: '100%', height: '100%' });
-    $btn.find('.tamako-toggle-text').css({ 'font-size': '14px', 'font-weight': '600', 'color': '#FFFFFF' });
-
-    initPhoneToggleDraggable($btn);
-}
-
-function initPhoneToggleDraggable($toggle) {
-    const btn = $toggle[0];
-    let hasMoved = false;
-    let startX, startY, startTime;
-    let offsetX, offsetY;
-    let pointerId = null;
-    const DRAG_THRESHOLD = 5;
-
-    function onContextMenu(e) { e.preventDefault(); }
-    btn.addEventListener('contextmenu', onContextMenu);
-    addEventListenerCleanup(btn, 'contextmenu', onContextMenu);
-
-    function onPointerDown(e) {
-        startTime = Date.now();
-        hasMoved = false;
-        pointerId = e.pointerId;
-        const rect = btn.getBoundingClientRect();
-        offsetX = e.clientX - rect.left;
-        offsetY = e.clientY - rect.top;
-        startX = e.clientX;
-        startY = e.clientY;
-        btn.setPointerCapture(e.pointerId);
-        $toggle.addClass('dragging');
-        e.preventDefault();
-    }
-
-    function onPointerMove(e) {
-        if (e.pointerId !== pointerId) return;
-        if (Math.abs(e.clientX - startX) > DRAG_THRESHOLD || Math.abs(e.clientY - startY) > DRAG_THRESHOLD) {
-            hasMoved = true;
-        }
-        if (!hasMoved) return;
-        const newX = e.clientX - offsetX;
-        const newY = e.clientY - offsetY;
-        const constrained = constrainPosition(newX, newY, btn.offsetWidth, btn.offsetHeight);
-        btn.style.left = constrained.x + 'px';
-        btn.style.top = constrained.y + 'px';
-        e.preventDefault();
-    }
-
-    function onPointerUp(e) {
-        if (e.pointerId !== pointerId) return;
-        try { btn.releasePointerCapture(e.pointerId); } catch (err) {}
-        $toggle.removeClass('dragging');
-        if (hasMoved) {
-            saveSetting('phoneToggleX', parseInt(btn.style.left));
-            saveSetting('phoneToggleY', parseInt(btn.style.top));
-        }
-        if (!hasMoved && Date.now() - startTime < 300) {
-            togglePhone();
-        }
-        hasMoved = false;
-        pointerId = null;
-    }
-
     btn.addEventListener('pointerdown', onPointerDown);
     btn.addEventListener('pointermove', onPointerMove);
     btn.addEventListener('pointerup', onPointerUp);
@@ -431,24 +323,13 @@ function initEventListeners() {
         try {
             const settings = getSettings();
             setExtensionEnabled(settings.enabled !== false);
-            setPhoneEnabled(settings.phoneEnabled !== false);
 
             createWindow();
             createToggleButton();
-            createPhoneContainer();
-            createPhoneToggleButton();
             setTimeout(createSettingsPanel, 2000);
             initEventListeners();
-
-            // 根据设置显示/隐藏
-            if (settings.enabled === false) {
-                $('#tamako-market-toggle').hide();
-            }
-            if (settings.phoneEnabled === false) {
-                $('#tamako-phone-toggle').hide();
-            }
             
-            console.log('[玉子市场] v2.9.0');
+            console.log('[玉子市场] v2.8.5');
         } catch (e) {
             console.error('[玉子市场] 初始化错误:', e);
         }
@@ -482,8 +363,6 @@ export function destroy() {
         // 移除 DOM 元素
         const $window = $('#tamako-market-window');
         const $toggle = $('#tamako-market-toggle');
-        const $phoneContainer = $('#tamako-phone-standalone');
-        const $phoneToggle = $('#tamako-phone-toggle');
         
         // 释放 iframe 的 blob URL
         const iframe = $window.find('.tamako-beautifier-frame')[0];
@@ -494,8 +373,6 @@ export function destroy() {
         
         $window.remove();
         $toggle.remove();
-        $phoneContainer.remove();
-        $phoneToggle.remove();
         $('#tamako-market-settings').remove();
         
         // 清除定时器

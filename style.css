@@ -1,13 +1,1695 @@
-﻿/* style.css */
+/* style.css */
 /**
- * 玉子市场 - 样式入口（模块化）
+ * 玉子市场 - 样式表
  * @version 2.8.5
- * 说明：按原顺序拆分，禁止随意调整导入顺序
+ * CSS变量驱动主题系统
  */
 
-@import url('./styles/00-core.css');
-@import url('./styles/01-phone-base.css');
-@import url('./styles/02-phone-nav-detail.css');
-@import url('./styles/03-phone-special-base.css');
-@import url('./styles/04-phone-special-interactions.css');
-@import url('./styles/05-phone-generic-template.css');
+/* ===== 主题变量定义 ===== */
+.tamako-window {
+    /* 默认主题变量 - 浅色系（仅作为备用） */
+    --tamako-primary: #FFB6C1;
+    --tamako-secondary: #DDA0DD;
+    --tamako-bg: linear-gradient(135deg, #FFF5F7 0%, #FFFFFF 50%, #F8F0FF 100%);
+    --tamako-surface: #FFFFFF;
+    --tamako-surface-alt: #FFF8FA;
+    --tamako-text: #333333;
+    --tamako-text-muted: #888888;
+    --tamako-border: rgba(0, 0, 0, 0.1);
+    --tamako-radius: 16px;
+    --tamako-opacity: 1;
+    --tamako-font: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+    
+    /* 兼容旧代码 */
+    --theme-primary: var(--tamako-primary);
+    --theme-secondary: var(--tamako-secondary);
+}
+
+.tamako-window.theme-night {
+    --tamako-primary: #9370DB;
+    --tamako-secondary: #6A5ACD;
+    --tamako-bg: linear-gradient(135deg, #2D2D3A 0%, #1E1E28 50%, #252532 100%);
+    --tamako-surface: #1E1E28;
+    --tamako-surface-alt: #2D2D3A;
+    --tamako-text: #E0E0E0;
+    --tamako-text-muted: #888888;
+    --tamako-border: #3D3D4A;
+    --theme-primary: var(--tamako-primary);
+    --theme-secondary: var(--tamako-secondary);
+}
+
+.tamako-window.theme-custom {
+    /* 自定义主题通过 JS 动态设置 CSS 变量 */
+}
+
+/* ===== 主窗口 ===== */
+.tamako-window {
+    position: fixed;
+    top: 100px;
+    left: 100px;
+    width: 380px;
+    height: 450px;
+    background: var(--tamako-bg);
+    border: 2px solid var(--tamako-primary);
+    border-radius: var(--tamako-radius);
+    box-shadow: 0 8px 32px rgba(255, 182, 193, 0.4);
+    z-index: 9990;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 280px;
+    min-height: 150px;
+    font-family: var(--tamako-font);
+    touch-action: none;
+    user-select: none;
+}
+
+.tamako-window.visible { display: flex; }
+.tamako-window.dragging { opacity: 0.9; box-shadow: 0 12px 48px rgba(255, 182, 193, 0.6); }
+.tamako-window.resizing { opacity: 0.95; }
+
+/* 缩放时全局样式 */
+body.tamako-resizing { 
+    cursor: nwse-resize !important; 
+    user-select: none !important;
+}
+body.tamako-resizing * { 
+    cursor: nwse-resize !important; 
+    user-select: none !important;
+}
+
+/* ===== 统一滚动条样式 ===== */
+.tamako-window ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.tamako-window ::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+}
+
+.tamako-window ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--tamako-primary), var(--tamako-secondary));
+    border-radius: 4px;
+}
+
+.tamako-window ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, var(--tamako-secondary), var(--tamako-primary));
+}
+
+/* ===== 调整大小手柄 ===== */
+.tamako-resize { 
+    position: absolute; 
+    z-index: 10;
+    touch-action: none;
+}
+.tamako-resize-e { right: -4px; top: 10%; width: 12px; height: 80%; cursor: ew-resize; }
+.tamako-resize-s { bottom: -4px; left: 10%; width: 80%; height: 12px; cursor: ns-resize; }
+.tamako-resize-se { right: -4px; bottom: -4px; width: 24px; height: 24px; cursor: nwse-resize; }
+.tamako-resize-se::after {
+    content: '';
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    width: 10px;
+    height: 10px;
+    border-right: 3px solid var(--tamako-primary);
+    border-bottom: 3px solid var(--tamako-primary);
+    opacity: 0.7;
+}
+.tamako-resize:hover { background: rgba(255, 182, 193, 0.2); }
+
+/* ===== 头部 ===== */
+.tamako-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, var(--tamako-primary) 0%, var(--tamako-secondary) 100%);
+    border-bottom: 2px solid rgba(255, 255, 255, 0.5);
+    cursor: move;
+    user-select: none;
+    flex-shrink: 0;
+    touch-action: none;
+}
+
+.tamako-drag-handle { flex: 1; cursor: move; }
+
+.tamako-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 15px;
+    color: #FFFFFF;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+    pointer-events: none;
+}
+
+.tamako-controls { display: flex; gap: 4px; flex-shrink: 0; }
+
+.tamako-btn {
+    background: rgba(255, 255, 255, 0.3);
+    border: none;
+    color: #FFFFFF;
+    cursor: pointer;
+    font-size: 13px;
+    padding: 5px 7px;
+    border-radius: 8px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tamako-btn svg { width: 14px; height: 14px; fill: currentColor; }
+.tamako-btn:hover { background: rgba(255, 255, 255, 0.5); }
+.tamako-btn:active { transform: scale(0.95); }
+.tamako-btn.close:hover { background: #FF6B6B; }
+.tamako-btn.delete-mode.active { background: #FF6B6B; }
+.tamako-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ===== 主题选择面板 ===== */
+.tamako-theme-panel {
+    padding: 8px 12px;
+    background: var(--tamako-surface-alt);
+    border-bottom: 2px solid var(--tamako-primary);
+}
+
+.tamako-theme-panel select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 2px solid var(--tamako-primary);
+    border-radius: 8px;
+    background: var(--tamako-surface);
+    color: var(--tamako-text);
+    font-size: 13px;
+    cursor: pointer;
+    outline: none;
+}
+
+/* ===== 选项卡 ===== */
+.tamako-tabs {
+    display: flex;
+    border-bottom: 2px solid var(--tamako-primary);
+    background: var(--tamako-surface-alt);
+    flex-shrink: 0;
+}
+
+.tamako-tab {
+    flex: 1;
+    padding: 10px;
+    background: none;
+    border: none;
+    color: var(--tamako-text-muted);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+    margin-bottom: -2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.tamako-tab svg { width: 16px; height: 16px; }
+.tamako-tab:hover { color: var(--tamako-primary); background: rgba(255, 255, 255, 0.5); }
+.tamako-tab.active {
+    color: var(--tamako-primary);
+    border-bottom-color: var(--tamako-primary);
+    background: var(--tamako-surface);
+}
+
+/* ===== 德拉提示 ===== */
+.tamako-toast {
+    position: absolute;
+    top: 50px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-10px);
+    background: linear-gradient(135deg, var(--tamako-primary) 0%, var(--tamako-secondary) 100%);
+    color: #FFF;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s ease;
+    z-index: 100;
+    white-space: nowrap;
+}
+
+.tamako-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ===== 内容区 ===== */
+.tamako-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0;
+    font-size: 14px;
+    color: var(--tamako-text);
+    line-height: 1.7;
+    background: var(--tamako-surface);
+    position: relative;
+}
+
+/* 美化器加载状态 */
+.tamako-beautifier-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--tamako-surface);
+    z-index: 5;
+    color: var(--tamako-text-muted);
+}
+
+.tamako-beautifier-loading .icon {
+    font-size: 36px;
+    margin-bottom: 10px;
+    animation: tamako-bounce 0.5s ease infinite alternate;
+}
+
+.tamako-beautifier-loading .message {
+    font-size: 13px;
+}
+
+/* iframe 样式 - 初始隐藏 */
+.tamako-beautifier-frame {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
+    border: none;
+    background: transparent;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+/* 普通模式内容 */
+.tamako-plot-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px;
+    background: var(--tamako-surface-alt);
+    border-radius: 0;
+    user-select: text;
+    word-wrap: break-word;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+/* 搜索高亮 */
+.tamako-plot-content mark,
+.tamako-item-preview mark {
+    background: var(--tamako-primary);
+    color: #FFF;
+    padding: 1px 3px;
+    border-radius: 3px;
+}
+
+/* 空状态 */
+.tamako-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    min-height: 100px;
+    color: var(--tamako-text-muted);
+    text-align: center;
+    padding: 20px;
+}
+
+.tamako-empty .icon { font-size: 36px; margin-bottom: 10px; }
+
+/* 库存标签页内容 */
+.tamako-content[data-content="history"] {
+    overflow-y: auto;
+    padding: 14px;
+}
+
+/* ===== 搜索栏 ===== */
+.tamako-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: var(--tamako-surface-alt);
+    border: 2px solid var(--tamako-primary);
+    border-radius: 10px;
+    margin-bottom: 12px;
+}
+
+.tamako-search svg { width: 14px; height: 14px; opacity: 0.5; }
+
+.tamako-search input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 13px;
+    color: var(--tamako-text);
+    min-width: 0;
+}
+
+.tamako-search input::placeholder { color: var(--tamako-text-muted); }
+
+.tamako-search-clear {
+    background: none;
+    border: none;
+    color: var(--tamako-text-muted);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+}
+
+.tamako-search-clear svg { width: 12px; height: 12px; }
+.tamako-search-clear:hover { background: rgba(0, 0, 0, 0.1); }
+
+/* ===== 历史记录 ===== */
+.tamako-history-list { display: block; width: 100%; }
+
+.tamako-history-item {
+    display: block;
+    position: relative;
+    background: var(--tamako-surface);
+    border: 2px solid var(--tamako-border);
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tamako-history-item:last-child { margin-bottom: 0; }
+.tamako-history-item:hover { border-color: var(--tamako-primary); transform: translateX(3px); }
+.tamako-history-item.delete-mode { cursor: default; padding-left: 36px; }
+.tamako-history-item.delete-mode:hover { transform: none; }
+
+.tamako-history-item .tamako-checkbox {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: var(--tamako-primary);
+}
+
+.tamako-item-time {
+    font-size: 12px;
+    color: var(--tamako-primary);
+    margin-bottom: 4px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.tamako-item-time svg { width: 12px; height: 12px; }
+
+.tamako-item-preview {
+    font-size: 13px;
+    color: var(--tamako-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ===== 删除操作栏 ===== */
+.tamako-delete-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: var(--tamako-surface-alt);
+    border-top: 2px solid var(--tamako-primary);
+    flex-shrink: 0;
+}
+
+.tamako-select-all {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--tamako-text-muted);
+    font-weight: 500;
+}
+
+.tamako-select-all input { accent-color: var(--tamako-primary); width: 18px; height: 18px; }
+
+.tamako-delete-actions { display: flex; gap: 8px; }
+
+.tamako-delete-confirm {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.tamako-delete-confirm svg { width: 14px; height: 14px; }
+
+.tamako-delete-cancel {
+    padding: 8px 16px;
+    background: var(--tamako-surface);
+    border: 2px solid var(--tamako-border);
+    border-radius: 8px;
+    color: var(--tamako-text-muted);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* ===== 最小化 ===== */
+.tamako-window.minimized .tamako-content,
+.tamako-window.minimized .tamako-tabs,
+.tamako-window.minimized .tamako-delete-bar,
+.tamako-window.minimized .tamako-theme-panel,
+.tamako-window.minimized .tamako-resize,
+.tamako-window.minimized .tamako-editor-container { display: none !important; }
+.tamako-window.minimized { height: auto !important; min-height: auto; }
+
+/* ===== 工具栏按钮 ===== */
+.tamako-toggle {
+    /* 默认主题变量 - 防止初始化时透明 */
+    --theme-primary: #FFB6C1;
+    --theme-secondary: #DDA0DD;
+    
+    position: fixed;
+    z-index: 10000;
+    background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-secondary) 100%);
+    border: 2px solid #FFFFFF;
+    border-radius: 12px;
+    padding: 8px 14px;
+    cursor: grab;
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+    user-select: none;
+    touch-action: none;
+}
+
+/* 按钮的主题变体 - 仅保留实际使用的 */
+.tamako-toggle.theme-night {
+    --theme-primary: #9370DB;
+    --theme-secondary: #6A5ACD;
+}
+
+.tamako-toggle.theme-custom {
+    /* 通过 JS 动态设置 */
+}
+
+.tamako-toggle:hover { transform: scale(1.05); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2); }
+.tamako-toggle:active,
+.tamako-toggle.dragging { cursor: grabbing; }
+.tamako-toggle.active { filter: brightness(1.1); }
+.tamako-toggle.has-new { animation: tamako-bounce 0.5s ease infinite alternate; }
+
+.tamako-toggle-icon { pointer-events: none; display: flex; align-items: center; }
+.tamako-toggle-icon svg { width: 18px; height: 18px; }
+.tamako-toggle-text { pointer-events: none; }
+
+@keyframes tamako-bounce {
+    from { transform: translateY(0); }
+    to { transform: translateY(-3px); }
+}
+
+/* ===== 主题编辑器 ===== */
+.tamako-editor-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--tamako-surface);
+}
+
+.tamako-theme-editor {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.tamako-editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: var(--tamako-surface-alt);
+    border-bottom: 2px solid var(--tamako-primary);
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--tamako-text);
+}
+
+.tamako-editor-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.tamako-editor-btn {
+    background: rgba(0, 0, 0, 0.05);
+    border: none;
+    padding: 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    color: var(--tamako-text);
+}
+
+.tamako-editor-btn svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+}
+
+.tamako-editor-btn:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.tamako-editor-btn.save:hover {
+    background: var(--tamako-primary);
+    color: #fff;
+}
+
+.tamako-editor-btn.close:hover {
+    background: #FF6B6B;
+    color: #fff;
+}
+
+.tamako-editor-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+}
+
+.tamako-editor-section {
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--tamako-border);
+}
+
+.tamako-editor-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.tamako-section-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--tamako-text-muted);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.tamako-editor-select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 2px solid var(--tamako-border);
+    border-radius: 8px;
+    background: var(--tamako-surface);
+    color: var(--tamako-text);
+    font-size: 13px;
+    cursor: pointer;
+    outline: none;
+}
+
+.tamako-editor-select:focus {
+    border-color: var(--tamako-primary);
+}
+
+/* 字体预览 */
+.tamako-font-preview {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: var(--tamako-surface-alt);
+    border: 2px dashed var(--tamako-border);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--tamako-text);
+    text-align: center;
+}
+
+/* 颜色选择行 */
+.tamako-color-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.tamako-color-row:last-child {
+    margin-bottom: 0;
+}
+
+.tamako-color-row > label {
+    font-size: 12px;
+    color: var(--tamako-text);
+    flex-shrink: 0;
+    width: 70px;
+}
+
+.tamako-color-input-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    justify-content: flex-end;
+}
+
+.tamako-color-preview {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 2px solid var(--tamako-border);
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.tamako-color-preview:hover {
+    transform: scale(1.1);
+    border-color: var(--tamako-primary);
+}
+
+.tamako-color-hex {
+    width: 80px;
+    padding: 6px 8px;
+    border: 2px solid var(--tamako-border);
+    border-radius: 6px;
+    background: var(--tamako-surface);
+    color: var(--tamako-text);
+    font-size: 12px;
+    font-family: monospace;
+    text-align: center;
+    outline: none;
+}
+
+.tamako-color-hex:focus {
+    border-color: var(--tamako-primary);
+}
+
+.tamako-eyedropper-btn {
+    background: rgba(0, 0, 0, 0.05);
+    border: none;
+    padding: 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    color: var(--tamako-text-muted);
+}
+
+.tamako-eyedropper-btn svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+}
+
+.tamako-eyedropper-btn:hover {
+    background: var(--tamako-primary);
+    color: #fff;
+}
+
+/* 滑块行 */
+.tamako-slider-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.tamako-slider-row:last-child {
+    margin-bottom: 0;
+}
+
+.tamako-slider-row > label {
+    font-size: 12px;
+    color: var(--tamako-text);
+    width: 60px;
+    flex-shrink: 0;
+}
+
+.tamako-slider-row input[type="range"] {
+    flex: 1;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--tamako-border);
+    border-radius: 3px;
+    outline: none;
+}
+
+.tamako-slider-row input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: linear-gradient(135deg, var(--tamako-primary), var(--tamako-secondary));
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.tamako-slider-row input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: linear-gradient(135deg, var(--tamako-primary), var(--tamako-secondary));
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.tamako-slider-value {
+    font-size: 11px;
+    color: var(--tamako-text-muted);
+    width: 40px;
+    text-align: right;
+    font-family: monospace;
+}
+
+/* ===== 调色盘弹窗 ===== */
+.tamako-color-picker-popup {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--tamako-surface);
+    border: 2px solid var(--tamako-primary);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    overflow: hidden;
+    width: 240px;
+}
+
+.tamako-picker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: linear-gradient(135deg, var(--tamako-primary), var(--tamako-secondary));
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.tamako-picker-close {
+    background: rgba(255, 255, 255, 0.3);
+    border: none;
+    padding: 4px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+}
+
+.tamako-picker-close svg {
+    width: 12px;
+    height: 12px;
+    fill: currentColor;
+}
+
+.tamako-picker-close:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.tamako-picker-body {
+    padding: 12px;
+}
+
+/* 色相滑块 */
+.tamako-hue-slider {
+    margin-bottom: 12px;
+}
+
+.tamako-hue-slider input[type="range"] {
+    width: 100%;
+    height: 12px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: linear-gradient(to right, 
+        hsl(0, 100%, 50%),
+        hsl(60, 100%, 50%),
+        hsl(120, 100%, 50%),
+        hsl(180, 100%, 50%),
+        hsl(240, 100%, 50%),
+        hsl(300, 100%, 50%),
+        hsl(360, 100%, 50%)
+    );
+    border-radius: 6px;
+    outline: none;
+}
+
+.tamako-hue-slider input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid #333;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* 饱和度/明度画布 */
+.tamako-saturation-lightness {
+    position: relative;
+    width: 100%;
+    height: 150px;
+    margin-bottom: 12px;
+    border-radius: 8px;
+    overflow: hidden;
+    touch-action: none;
+}
+
+.tamako-saturation-lightness canvas {
+    width: 100%;
+    height: 100%;
+    cursor: crosshair;
+}
+
+.tamako-sl-cursor {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+}
+
+/* 预览区 */
+.tamako-picker-preview {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.tamako-preview-color {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    border: 2px solid var(--tamako-border);
+}
+
+.tamako-preview-hex {
+    flex: 1;
+    padding: 8px 10px;
+    border: 2px solid var(--tamako-border);
+    border-radius: 8px;
+    background: var(--tamako-surface);
+    color: var(--tamako-text);
+    font-size: 14px;
+    font-family: monospace;
+    text-align: center;
+    outline: none;
+}
+
+.tamako-preview-hex:focus {
+    border-color: var(--tamako-primary);
+}
+
+/* 操作按钮 */
+.tamako-picker-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.tamako-picker-eyedropper,
+.tamako-picker-confirm {
+    flex: 1;
+    padding: 8px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    transition: all 0.2s;
+}
+
+.tamako-picker-eyedropper {
+    background: var(--tamako-surface-alt);
+    color: var(--tamako-text);
+    border: 2px solid var(--tamako-border);
+}
+
+.tamako-picker-eyedropper:hover {
+    border-color: var(--tamako-primary);
+    color: var(--tamako-primary);
+}
+
+.tamako-picker-eyedropper svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+}
+
+.tamako-picker-confirm {
+    background: linear-gradient(135deg, var(--tamako-primary), var(--tamako-secondary));
+    color: #fff;
+}
+
+.tamako-picker-confirm:hover {
+    filter: brightness(1.1);
+}
+
+/* ===== 吸管模式（仅PC端） ===== */
+body.tamako-eyedropper-mode {
+    cursor: crosshair !important;
+}
+
+body.tamako-eyedropper-mode * {
+    cursor: crosshair !important;
+}
+
+.tamako-eyedropper-indicator {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #FFB6C1 0%, #DDA0DD 100%);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 100000;
+    pointer-events: none;
+    animation: tamako-fade-in 0.3s ease;
+}
+
+/* 吸管预览 */
+.tamako-eyedropper-preview {
+    position: fixed;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.85);
+    padding: 8px 12px;
+    border-radius: 8px;
+    pointer-events: none;
+    z-index: 100001;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.tamako-eyedropper-preview .ep-color {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 2px solid #fff;
+    flex-shrink: 0;
+}
+
+.tamako-eyedropper-preview .ep-value {
+    color: #fff;
+    font-size: 13px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+@keyframes tamako-fade-in {
+    from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ===== 移动端适配 ===== */
+.tamako-window.tamako-mobile {
+    min-width: 260px;
+    min-height: 200px;
+    max-width: calc(100vw - 20px);
+    max-height: calc(100vh - 60px);
+}
+
+.tamako-mobile .tamako-header { padding: 10px 12px; }
+
+.tamako-mobile .tamako-btn {
+    padding: 8px 10px;
+    font-size: 14px;
+    min-width: 36px;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tamako-mobile .tamako-tab { padding: 12px 8px; font-size: 12px; }
+.tamako-mobile .tamako-search input { font-size: 16px; }
+.tamako-toggle-mobile { padding: 10px 16px; font-size: 13px; border-radius: 24px; }
+
+/* ===== 设置面板 ===== */
+
+/* 设置区块间距 */
+.tamako-settings-section {
+    margin: 10px 0;
+    padding: 10px;
+    background: var(--SmartThemeBlurTintColor);
+    border-radius: 4px;
+}
+
+.tamako-settings-section-title {
+    font-size: 12px;
+    font-weight: bold;
+    color: var(--SmartThemeBodyColor);
+    margin-bottom: 8px;
+    opacity: 0.8;
+}
+
+/* 文件上传区域 */
+.tamako-file-drop {
+    border: 1px dashed var(--SmartThemeBorderColor);
+    border-radius: 4px;
+    padding: 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--SmartThemeBlurTintColor);
+    margin: 8px 0;
+}
+
+.tamako-file-drop:hover,
+.tamako-file-drop.dragover {
+    border-color: var(--SmartThemeQuoteColor);
+    background: rgba(255, 105, 180, 0.05);
+}
+
+.tamako-file-drop-text {
+    font-size: 12px;
+    color: var(--SmartThemeBodyColor);
+    opacity: 0.7;
+    line-height: 1.5;
+}
+
+.tamako-file-input { display: none; }
+
+.tamako-file-status {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--SmartThemeBodyColor);
+    opacity: 0.7;
+}
+
+.tamako-file-status.success { color: #10b981; opacity: 1; }
+.tamako-file-status.error { color: #ef4444; opacity: 1; }
+
+/* 数字输入行 */
+.tamako-number-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.tamako-number-row:last-child { margin-bottom: 0; }
+.tamako-number-row label { flex: 1; font-size: 12px; }
+.tamako-number-row input[type="number"] { width: 60px; text-align: center; }
+.tamako-number-row .hint { font-size: 11px; opacity: 0.6; min-width: 20px; }
+
+/* 按钮组 */
+.tamako-btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.tamako-btn-group .menu_button { flex: 1; min-width: 70px; }
+
+/* 统计信息 */
+.tamako-stats { margin-top: 8px; font-size: 11px; opacity: 0.6; }
+
+/* ===== 模板选择器 ===== */
+.tamako-template-selector {
+    margin: 8px 0;
+}
+
+.tamako-template-selector label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 12px;
+    color: var(--SmartThemeBodyColor);
+    opacity: 0.8;
+}
+
+/* ===== 模板列表 ===== */
+.tamako-template-list {
+    max-height: 200px;
+    overflow-y: auto;
+    margin: 8px 0;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 4px;
+    background: var(--SmartThemeBlurTintColor);
+}
+
+.tamako-template-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.tamako-template-list::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 3px;
+}
+
+.tamako-template-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 182, 193, 0.5);
+    border-radius: 3px;
+}
+
+.tamako-template-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 182, 193, 0.8);
+}
+
+.tamako-template-empty {
+    padding: 20px;
+    text-align: center;
+    color: var(--SmartThemeBodyColor);
+    opacity: 0.5;
+    font-size: 12px;
+}
+
+.tamako-template-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--SmartThemeBorderColor);
+    background: transparent;
+    transition: all 0.2s;
+}
+
+.tamako-template-item:last-child {
+    border-bottom: none;
+}
+
+.tamako-template-item:hover {
+    background: rgba(255, 182, 193, 0.1);
+}
+
+.tamako-template-item.active {
+    background: rgba(255, 182, 193, 0.2);
+    border-left: 3px solid #FFB6C1;
+    padding-left: 7px;
+}
+
+.tamako-template-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.tamako-template-item .tamako-template-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--SmartThemeBodyColor);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tamako-template-date {
+    font-size: 10px;
+    color: var(--SmartThemeBodyColor);
+    opacity: 0.5;
+}
+
+.tamako-template-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+    margin-left: 8px;
+}
+
+.tamako-tpl-btn {
+    background: none;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 11px;
+    cursor: pointer;
+    color: var(--SmartThemeBodyColor);
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tamako-tpl-btn:hover:not(:disabled) {
+    background: rgba(255, 182, 193, 0.2);
+    border-color: #FFB6C1;
+}
+
+.tamako-tpl-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.tamako-tpl-btn.tamako-tpl-use {
+    min-width: 36px;
+}
+
+.tamako-tpl-btn.tamako-tpl-rename,
+.tamako-tpl-btn.tamako-tpl-delete {
+    padding: 4px 6px;
+    font-size: 12px;
+}
+
+.tamako-tpl-btn.tamako-tpl-delete:hover {
+    background: rgba(255, 100, 100, 0.2);
+    border-color: #ff6b6b;
+}
+
+/* ===== 装饰 ===== */
+.tamako-window::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: 20px;
+    right: 20px;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+    border-radius: 0 0 3px 3px;
+}
+
+/* ===== 响应式 ===== */
+@media screen and (max-width: 480px) {
+    .tamako-window { width: calc(100vw - 20px) !important; left: 10px !important; }
+    .tamako-toggle-text { display: none; }
+    
+    .tamako-template-actions {
+        flex-direction: column;
+        gap: 2px;
+    }
+    
+    .tamako-tpl-btn {
+        padding: 3px 6px;
+        font-size: 10px;
+    }
+}
+/* ===== 按钮编辑器样式 ===== */
+
+.tamako-button-shape-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.tamako-button-shape-row > label {
+    font-size: 12px;
+    color: var(--tamako-text);
+    width: 60px;
+    flex-shrink: 0;
+}
+
+.tamako-button-shape-row .tamako-editor-select {
+    flex: 1;
+}
+
+.tamako-button-image-section {
+    margin-top: 12px;
+}
+
+.tamako-button-image-section > label {
+    display: block;
+    font-size: 12px;
+    color: var(--tamako-text);
+    margin-bottom: 6px;
+}
+
+.tamako-button-image-drop {
+    border: 2px dashed var(--tamako-border);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--tamako-surface-alt);
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tamako-button-image-drop:hover,
+.tamako-button-image-drop.dragover {
+    border-color: var(--tamako-primary);
+    background: rgba(255, 182, 193, 0.1);
+}
+
+.tamako-button-image-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    color: var(--tamako-text-muted);
+}
+
+.tamako-button-image-placeholder svg {
+    width: 32px;
+    height: 32px;
+    opacity: 0.5;
+}
+
+.tamako-button-image-placeholder span {
+    font-size: 12px;
+}
+
+.tamako-button-image-placeholder .tamako-hint {
+    font-size: 10px;
+    opacity: 0.6;
+}
+
+.tamako-button-image-preview {
+    max-width: 100%;
+    max-height: 100px;
+    border-radius: 6px;
+    object-fit: contain;
+}
+
+.tamako-btn-remove-image {
+    display: block;
+    width: 100%;
+    margin-top: 8px;
+    padding: 6px 12px;
+    background: rgba(255, 100, 100, 0.1);
+    border: 1px solid rgba(255, 100, 100, 0.3);
+    border-radius: 6px;
+    color: #ff6b6b;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tamako-btn-remove-image:hover {
+    background: rgba(255, 100, 100, 0.2);
+    border-color: #ff6b6b;
+}
+
+.tamako-button-preview-container {
+    margin-top: 12px;
+}
+
+.tamako-button-preview-container > label {
+    display: block;
+    font-size: 12px;
+    color: var(--tamako-text);
+    margin-bottom: 6px;
+}
+
+.tamako-button-live-preview {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    cursor: default;
+}
+
+/* ===== 切换按钮变体 ===== */
+
+.tamako-toggle.tamako-toggle-circle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tamako-toggle.tamako-toggle-has-image .tamako-toggle-icon,
+.tamako-toggle.tamako-toggle-has-image .tamako-toggle-text {
+    display: none !important;
+}
+
+.tamako-toggle.tamako-toggle-circle .tamako-toggle-icon {
+    display: none;
+}
+
+.tamako-toggle.tamako-toggle-circle .tamako-toggle-text {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+/* ===== 标题文字样式（无动画） ===== */
+.tamako-title-animated {
+    color: var(--tamako-text, #E0E0E0);
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+/* ===== 按钮文字样式（无动画） ===== */
+.tamako-toggle .tamako-toggle-text {
+    color: #FFFFFF;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+/* ===== 拖拽时禁用过渡 ===== */
+.tamako-toggle.dragging,
+.tamako-toggle.dragging * {
+    transition: none !important;
+}
+
+/* ===== 切换按钮基础样式 ===== */
+.tamako-toggle {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2), 0 0 20px rgba(147, 112, 219, 0.15);
+    transition: box-shadow 0.3s ease, transform 0.2s ease;
+}
+
+.tamako-toggle:hover:not(.dragging) {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25), 0 0 30px rgba(147, 112, 219, 0.25);
+    transform: scale(1.05);
+}
+
+.tamako-toggle:active:not(.dragging) {
+    transform: scale(0.98);
+}
+
+/* ===== 按钮样式 ===== */
+.tamako-btn {
+    backdrop-filter: blur(4px);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tamako-btn:hover {
+    background: rgba(147, 112, 219, 0.3);
+    transform: translateY(-1px);
+}
+
+.tamako-btn:active {
+    transform: translateY(0) scale(0.95);
+}
+
+.tamako-btn:hover svg {
+    transform: scale(1.1);
+}
+
+.tamako-btn svg {
+    transition: transform 0.2s ease;
+}
+
+/* ===== 标题图标 ===== */
+.tamako-title-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.9;
+}
+
+.tamako-title-icon svg {
+    width: 20px;
+    height: 20px;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+}
+
+/* ===== 选项卡 ===== */
+.tamako-tab svg {
+    opacity: 0.7;
+    transition: all 0.2s ease;
+}
+
+.tamako-tab:hover svg {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.tamako-tab.active svg {
+    opacity: 1;
+}
+
+/* ===== 搜索 ===== */
+.tamako-search svg {
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+}
+
+.tamako-search:focus-within svg {
+    opacity: 0.8;
+}
+
+/* ===== 主题面板 ===== */
+.tamako-theme-panel {
+    background: var(--tamako-surface-alt);
+    border-bottom: 1px solid var(--tamako-border);
+}
+
+.tamako-theme-panel select {
+    background: var(--tamako-surface);
+    border: 1px solid var(--tamako-border);
+    color: var(--tamako-text);
+    transition: all 0.2s ease;
+}
+
+.tamako-theme-panel select:hover {
+    border-color: var(--tamako-primary);
+}
+
+.tamako-theme-panel select:focus {
+    border-color: var(--tamako-primary);
+    box-shadow: 0 0 0 2px rgba(147, 112, 219, 0.2);
+    outline: none;
+}
+
+/* ===== 编辑器标题 ===== */
+.tamako-section-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--tamako-text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--tamako-border);
+}
+
+/* ===== 删除按钮 ===== */
+.tamako-delete-confirm {
+    background: linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%);
+    border: none;
+    box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+    transition: all 0.2s ease;
+}
+
+.tamako-delete-confirm:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+}
+
+/* ===== 空状态 ===== */
+.tamako-empty .icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 10px;
+}
+
+.tamako-empty .icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+/* ===== 历史记录 ===== */
+.tamako-history-item {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tamako-history-item:hover {
+    border-color: var(--tamako-primary);
+    transform: translateX(4px);
+    box-shadow: -4px 0 0 var(--tamako-primary);
+}
+
+/* ===== 滚动条 ===== */
+.tamako-window ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.tamako-window ::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.tamako-window ::-webkit-scrollbar-thumb {
+    background: rgba(147, 112, 219, 0.3);
+    border-radius: 3px;
+}
+
+.tamako-window ::-webkit-scrollbar-thumb:hover {
+    background: rgba(147, 112, 219, 0.5);
+}
+
+/* ===== 窗口 ===== */
+.tamako-window {
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4), 0 0 30px rgba(147, 112, 219, 0.1);
+}
+
+/* ===== 头部 ===== */
+.tamako-header {
+    background: linear-gradient(135deg, rgba(147, 112, 219, 0.9) 0%, rgba(106, 90, 205, 0.9) 100%);
+    backdrop-filter: blur(10px);
+}
+
+/* ===== Toast ===== */
+.tamako-toast {
+    background: linear-gradient(135deg, var(--tamako-primary) 0%, var(--tamako-secondary) 100%);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 15px rgba(147, 112, 219, 0.4);
+}
+
+
+
