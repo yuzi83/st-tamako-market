@@ -1,16 +1,25 @@
 // index.js
 /**
  * 玉子市场 - SillyTavern 悬浮窗扩展
- * @version 2.8.5
+ * @version 2.8.6
+ *
+ * 更新日志:
+ * - v2.8.6: 规范化事件监听系统，使用 EventListenerManager 统一管理
+ * - v2.8.6: 添加 JSDoc 类型注释，提高代码可维护性
+ * - v2.8.6: 优化事件清理机制，防止内存泄漏
  */
 
 import { ICONS, themes } from './modules/constants.js';
 import {
     extensionEnabled, setCapturedPlots, getCapturedPlots,
     setMutationObserver, disconnectObserver, clearAllEventListeners,
-    addEventListenerCleanup, addEventSourceListenerCleanup, clearAllEventSourceListeners,
-    setExtensionEnabled
+    addEventListenerCleanup, clearAllEventSourceListeners,
+    setExtensionEnabled, initEventListenerManager, getEventListenerManager,
+    cleanupAllResources
 } from './modules/state.js';
+import {
+    EventTypes, getSTContext, getEventSource
+} from './modules/events.js';
 import {
     isMobileDevice, getSettings, saveSetting, getDefaultTogglePosition, constrainPosition,
     showDeraToast, applyButtonStyles
@@ -156,6 +165,21 @@ function initToggleDraggable($toggle) {
 
 // ===== 事件监听 =====
 
+/** @type {boolean} 初始扫描是否完成 */
+let initialScanDone = false;
+
+/** @type {number|null} 聊天切换扫描计时器 */
+let chatChangeScanTimer = null;
+
+/** @type {number|null} 添加消息防抖计时器 */
+let addDebounceTimer = null;
+
+/** @type {number|null} 删除消息防抖计时器 */
+let removeDebounceTimer = null;
+
+/**
+ * 设置 MutationObserver 监听 DOM 变化
+ */
 function setupMutationObserver() {
     try {
         const chatContainer = document.getElementById('chat');
@@ -163,9 +187,6 @@ function setupMutationObserver() {
             setTimeout(setupMutationObserver, 1000);
             return;
         }
-        
-        let addDebounceTimer = null;
-        let removeDebounceTimer = null;
         
         const callbacks = createCallbacks();
         
@@ -204,14 +225,18 @@ function setupMutationObserver() {
         });
         
         observer.observe(chatContainer, { childList: true, subtree: true });
-        
-        // 保存 observer 引用以便清理
         setMutationObserver(observer);
+        
+        console.log('[玉子市场] MutationObserver 已设置');
     } catch (e) {
         console.error('[玉子市场] DOM监听失败:', e);
     }
 }
 
+/**
+ * 创建回调函数集合
+ * @returns {Object}
+ */
 function createCallbacks() {
     return {
         onUpdate: updateCurrentContent,
@@ -226,9 +251,9 @@ function createCallbacks() {
     };
 }
 
-let initialScanDone = false;
-let chatChangeScanTimer = null;
-
+/**
+ * 执行扫描并更新
+ */
 function doScanAndUpdate() {
     const callbacks = createCallbacks();
     scanAllMessages(callbacks);
@@ -243,67 +268,89 @@ function doScanAndUpdate() {
     initialScanDone = true;
 }
 
+/**
+ * 初始化事件监听器
+ * 使用规范化的事件管理系统
+ */
 function initEventListeners() {
     try {
-        const context = SillyTavern.getContext();
+        // 初始化事件监听器管理器
+        const manager = initEventListenerManager();
+        const context = getSTContext();
+        const eventSource = getEventSource();
         const callbacks = createCallbacks();
         
-        if (context?.eventSource) {
-            const registerEventSourceListener = (eventName, handler) => {
-                try {
-                    context.eventSource.on(eventName, handler);
-                    addEventSourceListenerCleanup(context.eventSource, eventName, handler);
-                } catch (e) {}
-            };
-
-            const chatChangedEvents = [...new Set(['chat_changed', 'chatchanged', 'CHAT_CHANGED'])];
-            let lastChatChangeAt = 0;
-            const onChatChanged = () => {
-                const now = Date.now();
-                if (now - lastChatChangeAt < 250) return;
-                lastChatChangeAt = now;
-
-                setCapturedPlots([]);
-                if (chatChangeScanTimer) clearTimeout(chatChangeScanTimer);
-                chatChangeScanTimer = setTimeout(() => {
-                    doScanAndUpdate();
-                    chatChangeScanTimer = null;
-                }, 800);
-            };
-
-            for (const eventName of chatChangedEvents) {
-                registerEventSourceListener(eventName, onChatChanged);
-            }
-
-            registerEventSourceListener('message_sent', (idx) => {
-                setTimeout(() => handleUserMessage(idx, callbacks), 300);
-            });
-
-            registerEventSourceListener('message_rendered', (idx) => {
-                if (SillyTavern.getContext()?.chat?.[idx]?.is_user) {
-                    setTimeout(() => handleUserMessage(idx, callbacks), 200);
-                }
-            });
-
-            registerEventSourceListener('generation_started', () => {
-                setTimeout(() => checkLatestUserMessage(callbacks), 300);
-            });
-
-            registerEventSourceListener('generation_ended', () => {
-                setTimeout(() => checkLatestUserMessage(callbacks), 300);
-            });
-
-            const deleteEvents = ['message_deleted', 'message_removed', 'chat_updated', 'message_edited', 'message_swiped'];
-            for (const eventName of deleteEvents) {
-                registerEventSourceListener(eventName, () => validateCapturedPlots(callbacks));
-            }
+        if (!context || !eventSource) {
+            console.warn('[玉子市场] 无法获取 SillyTavern 上下文，仅使用 DOM 监听');
+            setupMutationObserver();
+            return;
         }
         
+        console.log('[玉子市场] 初始化事件监听器...');
+        
+        // ===== 聊天切换事件 =====
+        // 使用防抖避免重复触发
+        let lastChatChangeAt = 0;
+        const onChatChanged = () => {
+            const now = Date.now();
+            if (now - lastChatChangeAt < 250) return;
+            lastChatChangeAt = now;
+
+            setCapturedPlots([]);
+            if (chatChangeScanTimer) clearTimeout(chatChangeScanTimer);
+            chatChangeScanTimer = setTimeout(() => {
+                doScanAndUpdate();
+                chatChangeScanTimer = null;
+            }, 800);
+        };
+        
+        // 注册聊天切换事件（使用别名兼容）
+        manager.register(eventSource, EventTypes.CHAT_CHANGED, onChatChanged, {
+            useAlias: true,
+            debounce: 0 // 手动防抖
+        });
+        
+        // ===== 消息发送事件 =====
+        manager.register(eventSource, EventTypes.MESSAGE_SENT, (idx) => {
+            setTimeout(() => handleUserMessage(idx, callbacks), 300);
+        });
+        
+        // ===== 消息渲染事件 =====
+        manager.register(eventSource, EventTypes.USER_MESSAGE_RENDERED, (idx) => {
+            setTimeout(() => handleUserMessage(idx, callbacks), 200);
+        });
+        
+        // ===== 生成开始/结束事件 =====
+        manager.register(eventSource, EventTypes.GENERATION_STARTED, () => {
+            setTimeout(() => checkLatestUserMessage(callbacks), 300);
+        });
+        
+        manager.register(eventSource, EventTypes.GENERATION_ENDED, () => {
+            setTimeout(() => checkLatestUserMessage(callbacks), 300);
+        });
+        
+        // ===== 消息删除/编辑事件 =====
+        const deleteEvents = [
+            EventTypes.MESSAGE_DELETED,
+            EventTypes.MESSAGE_UPDATED,
+            EventTypes.MESSAGE_SWIPED
+        ];
+        
+        for (const eventType of deleteEvents) {
+            manager.register(eventSource, eventType, () => validateCapturedPlots(callbacks), {
+                useAlias: true
+            });
+        }
+        
+        console.log(`[玉子市场] 已注册 ${manager.count} 个事件监听器`);
+        
+        // 设置 DOM 监听作为备用
         setupMutationObserver();
         
+        // 延迟初始扫描
         setTimeout(() => {
             if (!initialScanDone) {
-                const ctx = SillyTavern.getContext();
+                const ctx = getSTContext();
                 if (ctx?.chat?.length > 0) {
                     doScanAndUpdate();
                 }
@@ -329,7 +376,7 @@ function initEventListeners() {
             setTimeout(createSettingsPanel, 2000);
             initEventListeners();
             
-            console.log('[玉子市场] v2.8.5');
+            console.log('[玉子市场] v2.8.6 - 事件系统优化版');
         } catch (e) {
             console.error('[玉子市场] 初始化错误:', e);
         }
@@ -343,24 +390,32 @@ function initEventListeners() {
 })();
 
 // ===== 扩展销毁函数 =====
-// 用于清理资源，防止内存泄漏
-// 可在扩展卸载或页面切换时调用
-
+/**
+ * 清理所有资源，防止内存泄漏
+ * 可在扩展卸载或页面切换时调用
+ */
 export function destroy() {
     try {
-        // 断开 MutationObserver
-        disconnectObserver();
+        console.log('[玉子市场] 开始清理资源...');
         
-        // 清除所有事件监听器
-        clearAllEventListeners();
-        clearAllEventSourceListeners();
-
+        // 1. 清理定时器
         if (chatChangeScanTimer) {
             clearTimeout(chatChangeScanTimer);
             chatChangeScanTimer = null;
         }
+        if (addDebounceTimer) {
+            clearTimeout(addDebounceTimer);
+            addDebounceTimer = null;
+        }
+        if (removeDebounceTimer) {
+            clearTimeout(removeDebounceTimer);
+            removeDebounceTimer = null;
+        }
         
-        // 移除 DOM 元素
+        // 2. 使用统一清理函数清理所有资源
+        cleanupAllResources();
+        
+        // 3. 移除 DOM 元素
         const $window = $('#tamako-market-window');
         const $toggle = $('#tamako-market-toggle');
         
@@ -375,15 +430,8 @@ export function destroy() {
         $toggle.remove();
         $('#tamako-market-settings').remove();
         
-        // 清除定时器
-        import('./modules/state.js').then(state => {
-            if (state.validateDebounceTimer) {
-                clearTimeout(state.validateDebounceTimer);
-            }
-            if (state.beautifierLoadTimeout) {
-                clearTimeout(state.beautifierLoadTimeout);
-            }
-        });
+        // 4. 重置状态
+        initialScanDone = false;
         
         console.log('[玉子市场] 扩展已卸载');
     } catch (e) {
