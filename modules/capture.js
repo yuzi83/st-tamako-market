@@ -13,7 +13,9 @@ import {
     extensionEnabled, validateDebounceTimer,
     setCapturedPlots, setValidateDebounceTimer, getCapturedPlots
 } from './state.js';
-import { getSettings } from './utils.js';
+import { getSettings } from './settings.js';
+export { clearTagRegexCache, extractTagContent, filterPlots } from './capture-core.js';
+import { extractPlotContent as extractPlotContentCore } from './capture-core.js';
 
 // ===== 类型定义 =====
 
@@ -44,116 +46,16 @@ import { getSettings } from './utils.js';
  * @property {Function} [onNewItem] - 新项目回调
  */
 
-// ===== 预编译正则表达式（性能优化）=====
-
-/** @type {Map<string, RegExp>} 标签正则缓存 */
-const tagRegexCache = new Map();
-
-/** @type {RegExp} AM编号正则 */
-const AM_CODE_REGEX = /AM\d{4}/gi;
-
-/** @type {RegExp[]} 关键词正则列表 */
-const KEYWORD_PATTERNS = [
-    /以上是用户的本轮输入/,
-    /以上是用户本轮输入/,
-    /以上是用户的/,
-    /以下是用户的本轮输入/,
-    /以下是用户本轮输入/,
-    /以下是用户的/
-];
-
-/**
- * 获取或创建标签正则表达式（带缓存）
- * @param {string} tagName - 标签名
- * @returns {RegExp}
- */
-function getTagRegex(tagName) {
-    const cacheKey = tagName.toLowerCase();
-    
-    if (!tagRegexCache.has(cacheKey)) {
-        // 预编译正则表达式，避免重复创建
-        const regex = new RegExp(
-            `(?<!\`)<${tagName}[^>]*>([\\s\\S]*?)<\\/${tagName}>(?!\`)`,
-            'gi'
-        );
-        tagRegexCache.set(cacheKey, regex);
-    }
-    
-    // 重置正则表达式的 lastIndex
-    const regex = tagRegexCache.get(cacheKey);
-    regex.lastIndex = 0;
-    return regex;
-}
-
-/**
- * 清理正则缓存（在标签配置变更时调用）
- */
-export function clearTagRegexCache() {
-    tagRegexCache.clear();
-}
-
-// ===== 标签提取 =====
-
-/**
- * 从消息中提取指定标签的内容
- * @param {string} message - 消息内容
- * @param {string} tagName - 标签名
- * @returns {string[]} 匹配到的标签内容数组
- */
-export function extractTagContent(message, tagName) {
-    const matches = [];
-    if (!message || !tagName) return matches;
-    
-    try {
-        const regex = getTagRegex(tagName);
-        let match;
-        
-        while ((match = regex.exec(message)) !== null) {
-            matches.push(match[0]);
-        }
-    } catch (e) {
-        console.warn(`[玉子市场] 提取标签 ${tagName} 失败:`, e);
-    }
-    
-    return matches;
-}
+// ===== 标签提取与过滤纯逻辑 =====
 
 /**
  * 从消息中提取剧情内容
  * @param {string} message - 消息内容
  * @returns {ExtractedContent|null} 提取的内容或 null
  */
-export function extractPlotContent(message) {
-    // 快速检查
-    if (!message || !extensionEnabled || !getSettings().autoCapture) {
-        return null;
-    }
-    
-    const tags = getSettings().captureTags || [];
-    if (tags.length === 0) return null;
-    
-    // 使用预编译正则检查关键词
-    const hasKeyword = KEYWORD_PATTERNS.some(pattern => pattern.test(message));
-    if (!hasKeyword) return null;
-    
-    // 重置正则的 lastIndex（因为使用了 test 方法）
-    KEYWORD_PATTERNS.forEach(pattern => pattern.lastIndex = 0);
-    
-    // 提取所有标签内容
-    const parts = [];
-    for (const tag of tags) {
-        const trimmedTag = tag.trim();
-        if (trimmedTag) {
-            parts.push(...extractTagContent(message, trimmedTag));
-        }
-    }
-    
-    if (parts.length === 0) return null;
-    
-    return { 
-        content: parts.join('\n\n'), 
-        rawMessage: message 
-    };
+export function extractPlotContent(message, settings = null) {
+    const effectiveSettings = settings || getSettings();
+    return extractPlotContentCore(message, effectiveSettings, extensionEnabled);
 }
 
 // ===== 消息处理 =====
@@ -162,10 +64,12 @@ export function extractPlotContent(message) {
  * 处理用户消息
  * @param {number} messageIndex - 消息索引
  * @param {Callbacks} [callbacks={}] - 回调函数
+ * @param {Object|null} [settings=null] - 当前设置快照
  * @returns {boolean} 是否成功捕获
  */
-export function handleUserMessage(messageIndex, callbacks = {}) {
-    if (!extensionEnabled || !getSettings().autoCapture) return false;
+export function handleUserMessage(messageIndex, callbacks = {}, settings = null) {
+    const effectiveSettings = settings || getSettings();
+    if (!extensionEnabled || !effectiveSettings.autoCapture) return false;
     
     try {
         const context = SillyTavern.getContext();
@@ -183,11 +87,10 @@ export function handleUserMessage(messageIndex, callbacks = {}) {
         }
         
         // 提取内容
-        const extracted = extractPlotContent(message.mes);
+        const extracted = extractPlotContent(message.mes, effectiveSettings);
         if (!extracted) return false;
         
         // 添加新捕获
-        const settings = getSettings();
         const newPlots = [...currentPlots, {
             content: extracted.content,
             rawMessage: extracted.rawMessage,
@@ -196,8 +99,8 @@ export function handleUserMessage(messageIndex, callbacks = {}) {
         }];
         
         // 限制数量
-        if (newPlots.length > settings.maxStoredPlots) {
-            newPlots.splice(0, newPlots.length - settings.maxStoredPlots);
+        if (newPlots.length > effectiveSettings.maxStoredPlots) {
+            newPlots.splice(0, newPlots.length - effectiveSettings.maxStoredPlots);
         }
         
         // 排序并保存
@@ -227,7 +130,8 @@ export function handleUserMessage(messageIndex, callbacks = {}) {
  * @param {Callbacks} [callbacks={}] - 回调函数
  */
 export function checkLatestUserMessage(callbacks = {}) {
-    if (!extensionEnabled || !getSettings().autoCapture) return;
+    const settings = getSettings();
+    if (!extensionEnabled || !settings.autoCapture) return;
     
     try {
         const context = SillyTavern.getContext();
@@ -238,7 +142,7 @@ export function checkLatestUserMessage(callbacks = {}) {
             if (context.chat[i]?.is_user) {
                 const currentPlots = getCapturedPlots();
                 if (!currentPlots.some(p => p.messageIndex === i)) {
-                    handleUserMessage(i, callbacks);
+                    handleUserMessage(i, callbacks, settings);
                 }
                 break; // 只处理最新的一条
             }
@@ -285,7 +189,7 @@ export function scanAllMessages(callbacks = {}) {
             // 跳过已捕获的消息
             if (existingIndices.has(i)) continue;
             
-            const extracted = extractPlotContent(context.chat[i].mes);
+            const extracted = extractPlotContent(context.chat[i].mes, settings);
             if (!extracted) continue;
             
             newPlots.push({
@@ -376,7 +280,7 @@ function doValidateCapturedPlots(callbacks = {}) {
             }
 
             // 重新提取内容
-            const extracted = extractPlotContent(msg.mes);
+            const extracted = extractPlotContent(msg.mes, settings);
             if (!extracted) {
                 hasChange = true;
                 continue;
@@ -431,38 +335,3 @@ function doValidateCapturedPlots(callbacks = {}) {
     }
 }
 
-// ===== 过滤功能 =====
-
-/**
- * 过滤捕获的记录
- * @param {CapturedPlot[]} plots - 捕获的记录数组
- * @param {string} query - 搜索关键词
- * @returns {CapturedPlot[]} 过滤后的数组
- */
-export function filterPlots(plots, query) {
-    if (!query || !plots) return plots || [];
-    
-    const lowerQuery = query.toLowerCase();
-    
-    return plots.filter(p => {
-        const content = p.content.toLowerCase();
-        const amCodes = extractAMCodes(p.content).join(' ').toLowerCase();
-        return content.includes(lowerQuery) || amCodes.includes(lowerQuery);
-    });
-}
-
-/**
- * 提取 AM 编号
- * @param {string} content - 内容
- * @returns {string[]} AM编号数组
- * @private
- */
-function extractAMCodes(content) {
-    if (!content) return [];
-    
-    // 重置正则
-    AM_CODE_REGEX.lastIndex = 0;
-    const matches = content.match(AM_CODE_REGEX);
-    
-    return matches ? [...new Set(matches.map(m => m.toUpperCase()))] : [];
-}

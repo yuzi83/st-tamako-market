@@ -4,7 +4,8 @@
  * @version 2.8.5
  */
 
-import { extensionName, defaultSettings, themes, fontOptions, deraMessages, ICONS, BUTTON_SIZE_DEFAULT } from './constants.js';
+import { defaultSettings, themes, fontOptions, deraMessages, ICONS, BUTTON_SIZE_DEFAULT } from './constants.js';
+import { getSettings } from './settings.js';
 import { currentTheme } from './state.js';
 
 // ===== 设备检测 =====
@@ -15,82 +16,7 @@ export function isMobileDevice() {
         || ('ontouchstart' in window);
 }
 
-// ===== 设置管理 =====
-
-export function getSettings() {
-    try {
-        const context = SillyTavern.getContext();
-        if (context?.extensionSettings) {
-            if (!context.extensionSettings[extensionName]) {
-                context.extensionSettings[extensionName] = { ...defaultSettings };
-            }
-            const s = context.extensionSettings[extensionName];
-            if (!s.captureTags) s.captureTags = [...defaultSettings.captureTags];
-            if (!s.maxScanMessages) s.maxScanMessages = defaultSettings.maxScanMessages;
-            if (!s.maxStoredPlots) s.maxStoredPlots = defaultSettings.maxStoredPlots;
-            
-            if (!s.beautifier || s.beautifier.template !== undefined) {
-                s.beautifier = migrateBeautifierSettings(s.beautifier);
-            }
-            if (!s.beautifier.templates) s.beautifier.templates = [];
-            if (s.beautifier.activeTemplateId === undefined) s.beautifier.activeTemplateId = null;
-            
-            if (s.customTheme === undefined) s.customTheme = null;
-            
-            if (s.customTheme) {
-                if (s.customTheme.buttonShape === undefined) s.customTheme.buttonShape = 'bar';
-                if (s.customTheme.buttonSize === undefined) s.customTheme.buttonSize = 1.0;
-                if (s.customTheme.buttonImage === undefined) s.customTheme.buttonImage = null;
-            }
-            
-            return s;
-        }
-    } catch (e) {
-        console.warn('[玉子市场] 无法获取设置:', e);
-    }
-    return { ...defaultSettings };
-}
-
-function migrateBeautifierSettings(oldBeautifier) {
-    const newBeautifier = {
-        enabled: false,
-        activeTemplateId: null,
-        templates: []
-    };
-    
-    if (oldBeautifier) {
-        newBeautifier.enabled = oldBeautifier.enabled || false;
-        
-        if (oldBeautifier.template && oldBeautifier.template.trim()) {
-            const migratedTemplate = {
-                id: generateTemplateId(),
-                name: oldBeautifier.fileName || '迁移的模板',
-                template: oldBeautifier.template,
-                createdAt: Date.now()
-            };
-            newBeautifier.templates.push(migratedTemplate);
-            newBeautifier.activeTemplateId = migratedTemplate.id;
-        }
-    }
-    
-    return newBeautifier;
-}
-
-export function saveSetting(key, value) {
-    try {
-        const settings = getSettings();
-        settings[key] = value;
-        SillyTavern.getContext()?.saveSettingsDebounced?.();
-    } catch (e) {
-        console.warn('[玉子市场] 保存失败:', e);
-    }
-}
-
 // ===== 模板管理 =====
-
-export function generateTemplateId() {
-    return 'tpl_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 5);
-}
 
 export function getActiveTemplate() {
     const settings = getSettings();

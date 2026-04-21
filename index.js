@@ -9,235 +9,31 @@
  * - v2.8.6: 优化事件清理机制，防止内存泄漏
  */
 
-import { ICONS, themes } from './modules/constants.js';
-import {
-    extensionEnabled, setCapturedPlots, getCapturedPlots,
-    setMutationObserver, disconnectObserver, clearAllEventListeners,
-    addEventListenerCleanup, clearAllEventSourceListeners,
-    setExtensionEnabled, initEventListenerManager, getEventListenerManager,
-    cleanupAllResources
-} from './modules/state.js';
-import {
-    EventTypes, getSTContext, getEventSource
-} from './modules/events.js';
-import {
-    isMobileDevice, getSettings, saveSetting, getDefaultTogglePosition, constrainPosition,
-    showDeraToast, applyButtonStyles
-} from './modules/utils.js';
-import { applyTheme } from './modules/theme-editor.js';
-import { handleUserMessage, checkLatestUserMessage, scanAllMessages, validateCapturedPlots } from './modules/capture.js';
-import { createWindow, toggleWindow, updateCurrentContent, updateHistoryList } from './modules/window.js';
-import { createSettingsPanel, updateCaptureCount } from './modules/settings-panel.js';
+import { setExtensionEnabled, cleanupAllResources } from './modules/state.js';
+import { showDeraToast } from './modules/utils.js';
+import { getSettings } from './modules/settings.js';
+import { createWindow, updateCurrentContent, updateHistoryList } from './modules/window.js';
+import { createSettingsPanel } from './modules/settings-panel.js';
+import { createToggleButton, removeToggleButton } from './modules/toggle.js';
+import { createRuntimeController } from './modules/runtime.js';
 
-// ===== 切换按钮 =====
+// ===== 运行时编排 =====
 
-function createToggleButton() {
-    if (document.getElementById('tamako-market-toggle')) return;
+let runtimeController = null;
+let settingsPanelTimer = null;
 
-    const settings = getSettings();
-    const isMobile = isMobileDevice();
-    const savedTheme = settings.theme || 'night';
-    
-    const btn = document.createElement('div');
-    btn.id = 'tamako-market-toggle';
-    btn.className = `tamako-toggle theme-${savedTheme === 'custom' ? 'custom' : 'night'} ${isMobile ? 'tamako-toggle-mobile' : ''}`;
-    btn.innerHTML = `<span class="tamako-toggle-icon">${ICONS.store}</span><span class="tamako-toggle-text">玉子市场</span>`;
-    btn.title = '拖拽移动 / 点击打开';
-    document.body.appendChild(btn);
-    
-    const defaultPos = getDefaultTogglePosition();
-    const $btn = $(btn);
-    
-    $btn.css({ 
-        left: (settings.toggleX ?? defaultPos.x) + 'px', 
-        top: (settings.toggleY ?? defaultPos.y) + 'px', 
-        right: 'auto', 
-        bottom: 'auto'
-    });
-    
-    // 应用主题和按钮样式
-    if (savedTheme === 'custom' && settings.customTheme) {
-        $btn.css({
-            '--theme-primary': settings.customTheme.colors.primary,
-            '--theme-secondary': settings.customTheme.colors.secondary
-        });
-        applyButtonStyles(settings.customTheme, $btn);
-    } else {
-        const theme = themes.night;
-        $btn.css({
-            '--theme-primary': theme.primary,
-            '--theme-secondary': theme.secondary
-        });
-        applyButtonStyles({
-            colors: { primary: theme.primary, secondary: theme.secondary },
-            buttonShape: 'bar',
-            buttonSize: 1.0,
-            buttonImage: null
-        }, $btn);
+function scheduleSettingsPanelCreation() {
+    if (settingsPanelTimer) {
+        clearTimeout(settingsPanelTimer);
     }
-    
-    initToggleDraggable($btn);
+
+    settingsPanelTimer = setTimeout(() => {
+        settingsPanelTimer = null;
+        createSettingsPanel();
+    }, 2000);
 }
 
-function initToggleDraggable($toggle) {
-    const btn = $toggle[0];
-    let hasMoved = false;
-    let startX, startY, startTime;
-    let offsetX, offsetY;
-    let pointerId = null;
-    const DRAG_THRESHOLD = 5;
-    
-    function onContextMenu(e) {
-        e.preventDefault();
-    }
-    btn.addEventListener('contextmenu', onContextMenu);
-    addEventListenerCleanup(btn, 'contextmenu', onContextMenu);
-    
-    function onPointerDown(e) {
-        startTime = Date.now();
-        hasMoved = false;
-        pointerId = e.pointerId;
-        
-        const rect = btn.getBoundingClientRect();
-        offsetX = e.clientX - rect.left;
-        offsetY = e.clientY - rect.top;
-        startX = e.clientX;
-        startY = e.clientY;
-        
-        btn.setPointerCapture(e.pointerId);
-        $toggle.addClass('dragging');
-        
-        e.preventDefault();
-    }
-    
-    function onPointerMove(e) {
-        if (e.pointerId !== pointerId) return;
-        
-        if (Math.abs(e.clientX - startX) > DRAG_THRESHOLD || Math.abs(e.clientY - startY) > DRAG_THRESHOLD) {
-            hasMoved = true;
-        }
-        
-        if (!hasMoved) return;
-        
-        // 直接设置位置，不使用 jQuery 动画
-        const newX = e.clientX - offsetX;
-        const newY = e.clientY - offsetY;
-        
-        const constrained = constrainPosition(newX, newY, btn.offsetWidth, btn.offsetHeight);
-        
-        btn.style.left = constrained.x + 'px';
-        btn.style.top = constrained.y + 'px';
-        
-        e.preventDefault();
-    }
-    
-    function onPointerUp(e) {
-        if (e.pointerId !== pointerId) return;
-        
-        try {
-            btn.releasePointerCapture(e.pointerId);
-        } catch (err) {}
-        
-        $toggle.removeClass('dragging');
-        
-        if (hasMoved) {
-            saveSetting('toggleX', parseInt(btn.style.left));
-            saveSetting('toggleY', parseInt(btn.style.top));
-        }
-        
-        if (!hasMoved && Date.now() - startTime < 300) {
-            toggleWindow();
-        }
-        
-        hasMoved = false;
-        pointerId = null;
-    }
-    
-    btn.addEventListener('pointerdown', onPointerDown);
-    btn.addEventListener('pointermove', onPointerMove);
-    btn.addEventListener('pointerup', onPointerUp);
-    btn.addEventListener('pointercancel', onPointerUp);
-    addEventListenerCleanup(btn, 'pointerdown', onPointerDown);
-    addEventListenerCleanup(btn, 'pointermove', onPointerMove);
-    addEventListenerCleanup(btn, 'pointerup', onPointerUp);
-    addEventListenerCleanup(btn, 'pointercancel', onPointerUp);
-}
-
-// ===== 事件监听 =====
-
-/** @type {boolean} 初始扫描是否完成 */
-let initialScanDone = false;
-
-/** @type {number|null} 聊天切换扫描计时器 */
-let chatChangeScanTimer = null;
-
-/** @type {number|null} 添加消息防抖计时器 */
-let addDebounceTimer = null;
-
-/** @type {number|null} 删除消息防抖计时器 */
-let removeDebounceTimer = null;
-
-/**
- * 设置 MutationObserver 监听 DOM 变化
- */
-function setupMutationObserver() {
-    try {
-        const chatContainer = document.getElementById('chat');
-        if (!chatContainer) {
-            setTimeout(setupMutationObserver, 1000);
-            return;
-        }
-        
-        const callbacks = createCallbacks();
-        
-        const observer = new MutationObserver((mutations) => {
-            let hasAdded = false;
-            let hasRemoved = false;
-            
-            for (const m of mutations) {
-                if (m.addedNodes.length > 0) {
-                    for (const node of m.addedNodes) {
-                        if (node.nodeType === 1 && (node.classList?.contains('mes') || node.querySelector?.('.mes'))) {
-                            hasAdded = true;
-                            break;
-                        }
-                    }
-                }
-                if (m.removedNodes.length > 0) {
-                    for (const node of m.removedNodes) {
-                        if (node.nodeType === 1 && (node.classList?.contains('mes') || node.querySelector?.('.mes'))) {
-                            hasRemoved = true;
-                            break;
-                        }
-                    }
-                }
-                if (hasAdded && hasRemoved) break;
-            }
-            
-            if (hasAdded) {
-                if (addDebounceTimer) clearTimeout(addDebounceTimer);
-                addDebounceTimer = setTimeout(() => checkLatestUserMessage(callbacks), 500);
-            }
-            if (hasRemoved) {
-                if (removeDebounceTimer) clearTimeout(removeDebounceTimer);
-                removeDebounceTimer = setTimeout(() => validateCapturedPlots(callbacks), 300);
-            }
-        });
-        
-        observer.observe(chatContainer, { childList: true, subtree: true });
-        setMutationObserver(observer);
-        
-        console.log('[玉子市场] MutationObserver 已设置');
-    } catch (e) {
-        console.error('[玉子市场] DOM监听失败:', e);
-    }
-}
-
-/**
- * 创建回调函数集合
- * @returns {Object}
- */
-function createCallbacks() {
+function createRuntimeCallbacks() {
     return {
         onUpdate: updateCurrentContent,
         onHistoryUpdate: updateHistoryList,
@@ -247,120 +43,8 @@ function createCallbacks() {
                 $('#tamako-market-toggle').addClass('has-new');
                 setTimeout(() => $('#tamako-market-toggle').removeClass('has-new'), 3000);
             }
-        }
+        },
     };
-}
-
-/**
- * 执行扫描并更新
- */
-function doScanAndUpdate() {
-    const callbacks = createCallbacks();
-    scanAllMessages(callbacks);
-    
-    const plots = getCapturedPlots();
-    if (plots.length > 0) {
-        const latest = plots[plots.length - 1];
-        updateCurrentContent(latest.content, latest.rawMessage);
-    }
-    updateHistoryList();
-    
-    initialScanDone = true;
-}
-
-/**
- * 初始化事件监听器
- * 使用规范化的事件管理系统
- */
-function initEventListeners() {
-    try {
-        // 初始化事件监听器管理器
-        const manager = initEventListenerManager();
-        const context = getSTContext();
-        const eventSource = getEventSource();
-        const callbacks = createCallbacks();
-        
-        if (!context || !eventSource) {
-            console.warn('[玉子市场] 无法获取 SillyTavern 上下文，仅使用 DOM 监听');
-            setupMutationObserver();
-            return;
-        }
-        
-        console.log('[玉子市场] 初始化事件监听器...');
-        
-        // ===== 聊天切换事件 =====
-        // 使用防抖避免重复触发
-        let lastChatChangeAt = 0;
-        const onChatChanged = () => {
-            const now = Date.now();
-            if (now - lastChatChangeAt < 250) return;
-            lastChatChangeAt = now;
-
-            setCapturedPlots([]);
-            if (chatChangeScanTimer) clearTimeout(chatChangeScanTimer);
-            chatChangeScanTimer = setTimeout(() => {
-                doScanAndUpdate();
-                chatChangeScanTimer = null;
-            }, 800);
-        };
-        
-        // 注册聊天切换事件（使用别名兼容）
-        manager.register(eventSource, EventTypes.CHAT_CHANGED, onChatChanged, {
-            useAlias: true,
-            debounce: 0 // 手动防抖
-        });
-        
-        // ===== 消息发送事件 =====
-        manager.register(eventSource, EventTypes.MESSAGE_SENT, (idx) => {
-            setTimeout(() => handleUserMessage(idx, callbacks), 300);
-        });
-        
-        // ===== 消息渲染事件 =====
-        manager.register(eventSource, EventTypes.USER_MESSAGE_RENDERED, (idx) => {
-            setTimeout(() => handleUserMessage(idx, callbacks), 200);
-        });
-        
-        // ===== 生成开始/结束事件 =====
-        manager.register(eventSource, EventTypes.GENERATION_STARTED, () => {
-            setTimeout(() => checkLatestUserMessage(callbacks), 300);
-        });
-        
-        manager.register(eventSource, EventTypes.GENERATION_ENDED, () => {
-            setTimeout(() => checkLatestUserMessage(callbacks), 300);
-        });
-        
-        // ===== 消息删除/编辑事件 =====
-        const deleteEvents = [
-            EventTypes.MESSAGE_DELETED,
-            EventTypes.MESSAGE_UPDATED,
-            EventTypes.MESSAGE_SWIPED
-        ];
-        
-        for (const eventType of deleteEvents) {
-            manager.register(eventSource, eventType, () => validateCapturedPlots(callbacks), {
-                useAlias: true
-            });
-        }
-        
-        console.log(`[玉子市场] 已注册 ${manager.count} 个事件监听器`);
-        
-        // 设置 DOM 监听作为备用
-        setupMutationObserver();
-        
-        // 延迟初始扫描
-        setTimeout(() => {
-            if (!initialScanDone) {
-                const ctx = getSTContext();
-                if (ctx?.chat?.length > 0) {
-                    doScanAndUpdate();
-                }
-            }
-        }, 2000);
-        
-    } catch (e) {
-        console.error('[玉子市场] 事件监听失败:', e);
-        setupMutationObserver();
-    }
 }
 
 // ===== 初始化 =====
@@ -373,8 +57,12 @@ function initEventListeners() {
 
             createWindow();
             createToggleButton();
-            setTimeout(createSettingsPanel, 2000);
-            initEventListeners();
+            scheduleSettingsPanelCreation();
+
+            if (!runtimeController) {
+                runtimeController = createRuntimeController(createRuntimeCallbacks());
+            }
+            runtimeController.start();
             
             console.log('[玉子市场] v2.8.6 - 事件系统优化版');
         } catch (e) {
@@ -398,26 +86,20 @@ export function destroy() {
     try {
         console.log('[玉子市场] 开始清理资源...');
         
-        // 1. 清理定时器
-        if (chatChangeScanTimer) {
-            clearTimeout(chatChangeScanTimer);
-            chatChangeScanTimer = null;
+        if (settingsPanelTimer) {
+            clearTimeout(settingsPanelTimer);
+            settingsPanelTimer = null;
         }
-        if (addDebounceTimer) {
-            clearTimeout(addDebounceTimer);
-            addDebounceTimer = null;
-        }
-        if (removeDebounceTimer) {
-            clearTimeout(removeDebounceTimer);
-            removeDebounceTimer = null;
+
+        if (runtimeController) {
+            runtimeController.destroy();
+            runtimeController = null;
+        } else {
+            cleanupAllResources();
         }
         
-        // 2. 使用统一清理函数清理所有资源
-        cleanupAllResources();
-        
-        // 3. 移除 DOM 元素
+        // 移除 DOM 元素
         const $window = $('#tamako-market-window');
-        const $toggle = $('#tamako-market-toggle');
         
         // 释放 iframe 的 blob URL
         const iframe = $window.find('.tamako-beautifier-frame')[0];
@@ -427,11 +109,8 @@ export function destroy() {
         }
         
         $window.remove();
-        $toggle.remove();
+        removeToggleButton();
         $('#tamako-market-settings').remove();
-        
-        // 4. 重置状态
-        initialScanDone = false;
         
         console.log('[玉子市场] 扩展已卸载');
     } catch (e) {

@@ -88,12 +88,25 @@ export class EventListenerManager {
             eventType,
             handler: wrappedHandler,
             originalHandler: handler,
-            registered: false
+            options: options.eventOptions,
+            registered: false,
+            mode: 'unknown'
         };
 
-        // 使用别名兼容
-        if (useAlias && EventAliases[eventType]) {
+        // DOM EventTarget 路径
+        if (typeof eventSource?.addEventListener === 'function') {
+            try {
+                eventSource.addEventListener(eventType, wrappedHandler, options.eventOptions);
+                listenerEntry.registered = true;
+                listenerEntry.mode = 'dom';
+            } catch (e) {
+                console.warn(`[玉子市场] 注册 DOM 事件失败: ${eventType}`, e);
+            }
+        }
+        // 使用别名兼容的 EventSource 路径
+        else if (useAlias && EventAliases[eventType]) {
             const aliases = EventAliases[eventType];
+            listenerEntry.mode = 'eventSource';
             for (const alias of aliases) {
                 try {
                     eventSource.on(alias, wrappedHandler);
@@ -106,6 +119,7 @@ export class EventListenerManager {
             try {
                 eventSource.on(eventType, wrappedHandler);
                 listenerEntry.registered = true;
+                listenerEntry.mode = 'eventSource';
             } catch (e) {
                 console.warn(`[玉子市场] 注册事件失败: ${eventType}`, e);
             }
@@ -167,9 +181,18 @@ export class EventListenerManager {
      * @private
      */
     _removeListener(listener) {
-        const { eventSource, eventType, handler, registered } = listener;
+        const { eventSource, eventType, handler, registered, options, mode } = listener;
         
         if (!registered) return;
+
+        if (mode === 'dom' && typeof eventSource?.removeEventListener === 'function') {
+            try {
+                eventSource.removeEventListener(eventType, handler, options);
+            } catch (e) {
+                // 忽略错误
+            }
+            return;
+        }
 
         // 尝试使用别名移除
         if (EventAliases[eventType]) {

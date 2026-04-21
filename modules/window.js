@@ -4,23 +4,29 @@
  * @version 2.8.5
  */
 
-import { ICONS, themes } from './constants.js';
+import { ICONS } from './constants.js';
 import {
-    getCapturedPlots, getDeleteMode, getSearchQuery,
+    getCapturedPlots, getDeleteMode,
     resizeState, dragState,
-    setCapturedPlots, setDeleteMode, setSearchQuery,
+    setCapturedPlots, setSearchQuery,
     updateResizeState, updateDragState,
-    addEventListenerCleanup
+    initEventListenerManager
 } from './state.js';
 import {
-    isMobileDevice, getSettings, saveSetting, getDefaultWindowPosition, getDefaultTogglePosition,
-    constrainPosition, getDeraMessage, showDeraToast, highlightText,
-    extractAMCodes, formatAMCodes, hideBeautifierFrame, showBeautifierFrame,
-    getActiveTemplate
+    isMobileDevice, getDefaultWindowPosition, getDefaultTogglePosition,
+    constrainPosition, getDeraMessage, showDeraToast, hideBeautifierFrame, showBeautifierFrame
 } from './utils.js';
-import { applyTheme, openThemeEditor, closeThemeEditor } from './theme-editor.js';
-import { parseBeautifierTemplate, renderWithBeautifier, getActiveTemplateData } from './beautifier.js';
+import { getSettings, saveSetting } from './settings.js';
+import { applyTheme } from './theme-application.js';
+import { openThemeEditor, closeThemeEditor } from './theme-editor.js';
 import { scanAllMessages } from './capture.js';
+import { updateCurrentContent as renderCurrentContent } from './window-content.js';
+import {
+    toggleDeleteMode as toggleHistoryDeleteMode,
+    deleteSelectedItems as deleteHistorySelectedItems,
+    updateHistoryList as renderHistoryList,
+    updateCaptureCount as syncCaptureCount,
+} from './window-history.js';
 
 // ===== 窗口创建 =====
 
@@ -122,12 +128,13 @@ export function createWindow() {
 
 function initDraggable($window) {
     const header = $window.find('.tamako-header')[0];
+    const manager = initEventListenerManager();
     
     function onHeaderContextMenu(e) {
         e.preventDefault();
     }
     header.addEventListener('contextmenu', onHeaderContextMenu);
-    addEventListenerCleanup(header, 'contextmenu', onHeaderContextMenu);
+    manager.register(header, 'contextmenu', onHeaderContextMenu);
     
     function onPointerDown(e) {
         if (e.target.closest('.tamako-btn, .tamako-controls')) return;
@@ -188,10 +195,10 @@ function initDraggable($window) {
     header.addEventListener('pointermove', onPointerMove);
     header.addEventListener('pointerup', onPointerUp);
     header.addEventListener('pointercancel', onPointerUp);
-    addEventListenerCleanup(header, 'pointerdown', onPointerDown);
-    addEventListenerCleanup(header, 'pointermove', onPointerMove);
-    addEventListenerCleanup(header, 'pointerup', onPointerUp);
-    addEventListenerCleanup(header, 'pointercancel', onPointerUp);
+    manager.register(header, 'pointerdown', onPointerDown);
+    manager.register(header, 'pointermove', onPointerMove);
+    manager.register(header, 'pointerup', onPointerUp);
+    manager.register(header, 'pointercancel', onPointerUp);
 }
 
 // ===== 缩放 =====
@@ -200,6 +207,8 @@ function initResizable($window) {
     const minWidth = isMobileDevice() ? 260 : 280;
     const minHeight = isMobileDevice() ? 200 : 150;
     
+    const manager = initEventListenerManager();
+
     $window.find('.tamako-resize').each(function() {
         const handle = this;
         
@@ -207,7 +216,7 @@ function initResizable($window) {
             e.preventDefault();
         }
         handle.addEventListener('contextmenu', onHandleContextMenu);
-        addEventListenerCleanup(handle, 'contextmenu', onHandleContextMenu);
+        manager.register(handle, 'contextmenu', onHandleContextMenu);
         
         function onPointerDown(e) {
             e.preventDefault();
@@ -279,10 +288,10 @@ function initResizable($window) {
         handle.addEventListener('pointermove', onPointerMove);
         handle.addEventListener('pointerup', onPointerUp);
         handle.addEventListener('pointercancel', onPointerUp);
-        addEventListenerCleanup(handle, 'pointerdown', onPointerDown);
-        addEventListenerCleanup(handle, 'pointermove', onPointerMove);
-        addEventListenerCleanup(handle, 'pointerup', onPointerUp);
-        addEventListenerCleanup(handle, 'pointercancel', onPointerUp);
+        manager.register(handle, 'pointerdown', onPointerDown);
+        manager.register(handle, 'pointermove', onPointerMove);
+        manager.register(handle, 'pointerup', onPointerUp);
+        manager.register(handle, 'pointercancel', onPointerUp);
     });
 }
 
@@ -373,46 +382,11 @@ function bindWindowEvents($window) {
 // ===== 删除模式 =====
 
 export function toggleDeleteMode(enable) {
-    const $window = $('#tamako-market-window');
-    const deleteMode = getDeleteMode();
-    const newMode = enable ?? !deleteMode;
-    setDeleteMode(newMode);
-    
-    $window.find('.tamako-delete-bar').toggle(newMode);
-    $window.find('.tamako-btn.delete-mode').toggleClass('active', newMode);
-    $window.find('#tamako-select-all').prop('checked', false);
-    
-    if (newMode) {
-        $window.find('.tamako-tab[data-tab="history"]').click();
-    }
-    
-    updateHistoryList();
+    toggleHistoryDeleteMode(enable);
 }
 
 function deleteSelectedItems() {
-    const toDelete = [];
-    $('.tamako-history-item .tamako-checkbox:checked').each(function() {
-        toDelete.push(parseInt($(this).closest('.tamako-history-item').data('index')));
-    });
-    
-    if (toDelete.length === 0) return;
-    
-    const capturedPlots = getCapturedPlots();
-    const newPlots = [...capturedPlots];
-    toDelete.sort((a, b) => b - a).forEach(idx => newPlots.splice(idx, 1));
-    setCapturedPlots(newPlots);
-    
-    const updatedPlots = getCapturedPlots();
-    if (updatedPlots.length > 0) {
-        const latest = updatedPlots[updatedPlots.length - 1];
-        updateCurrentContent(latest.content, latest.rawMessage);
-    } else {
-        updateCurrentContent('', '');
-    }
-    
-    toggleDeleteMode(false);
-    updateHistoryList();
-    showDeraToast('delete');
+    deleteHistorySelectedItems();
 }
 
 // ===== 窗口开关 =====
@@ -446,119 +420,15 @@ export function toggleWindow(show) {
 // ===== 内容更新 =====
 
 export function updateCurrentContent(content, rawMessage) {
-    const $content = $('#tamako-market-window .tamako-content[data-content="current"]');
-    const settings = getSettings();
-    const searchQuery = getSearchQuery();
-    
-    if (!content?.trim()) {
-        // 释放 blob URL 防止内存泄漏
-        const $oldIframe = $content.find('.tamako-beautifier-frame');
-        if ($oldIframe.length && $oldIframe[0]._blobUrl) {
-            URL.revokeObjectURL($oldIframe[0]._blobUrl);
-            $oldIframe[0]._blobUrl = null;
-        }
-        $content.css('position', '').empty().html(`
-            <div class="tamako-empty">
-                <span class="icon">${ICONS.sparkle}</span>
-                <span class="message">${getDeraMessage('empty')}</span>
-            </div>
-        `);
-        return;
-    }
-    
-    if (settings.beautifier?.enabled && settings.beautifier?.activeTemplateId) {
-        const templateData = getActiveTemplateData();
-        if (templateData && rawMessage) {
-            if (renderWithBeautifier($content, rawMessage, templateData)) {
-                return;
-            }
-        }
-    }
-    
-    $content.css('position', '');
-    
-    // 释放 blob URL 防止内存泄漏
-    const $oldIframe = $content.find('.tamako-beautifier-frame');
-    if ($oldIframe.length && $oldIframe[0]._blobUrl) {
-        URL.revokeObjectURL($oldIframe[0]._blobUrl);
-        $oldIframe[0]._blobUrl = null;
-    }
-    $content.find('.tamako-beautifier-frame, .tamako-beautifier-loading').remove();
-    
-    let formatted = content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    if (searchQuery) formatted = highlightText(formatted, searchQuery);
-    
-    $content.html(`<div class="tamako-plot-content"><div>${formatted.replace(/\n/g, '<br>')}</div></div>`);
+    renderCurrentContent(content, rawMessage);
 }
 
 export function updateHistoryList() {
-    const $list = $('#tamako-market-window .tamako-history-list');
-    const capturedPlots = getCapturedPlots();
-    const deleteMode = getDeleteMode();
-    const searchQuery = getSearchQuery();
-    
-    const filteredPlots = filterPlots(capturedPlots, searchQuery);
-    
-    $('#tamako-history-count').text(capturedPlots.length);
-    
-    if (!capturedPlots.length) {
-        $list.html(`<div class="tamako-empty"><span class="icon">${ICONS.boxEmpty}</span><span class="message">${getDeraMessage('empty')}</span></div>`);
-        updateCaptureCount();
-        return;
-    }
-    
-    if (filteredPlots.length === 0 && searchQuery) {
-        $list.html(`<div class="tamako-empty"><span class="icon">${ICONS.search}</span><span class="message">${getDeraMessage('noResult')}</span></div>`);
-        updateCaptureCount();
-        return;
-    }
-    
-    let html = '';
-    for (let i = filteredPlots.length - 1; i >= 0; i--) {
-        const plot = filteredPlots[i];
-        const originalIndex = capturedPlots.indexOf(plot);
-        const amDisplay = formatAMCodes(extractAMCodes(plot.content));
-        const checkbox = deleteMode ? `<input type="checkbox" class="tamako-checkbox" onclick="event.stopPropagation()">` : '';
-        const displayText = searchQuery ? highlightText(amDisplay, searchQuery) : amDisplay;
-        
-        html += `
-            <div class="tamako-history-item ${deleteMode ? 'delete-mode' : ''}" data-index="${originalIndex}">
-                ${checkbox}
-                <div class="tamako-item-time">${ICONS.pin} 第${plot.messageIndex}条消息</div>
-                <div class="tamako-item-preview">${displayText}</div>
-            </div>
-        `;
-    }
-    
-    $list.html(html);
-    
-    if (!deleteMode) {
-        $list.find('.tamako-history-item').on('click', function() {
-            const currentPlots = getCapturedPlots();
-            const plot = currentPlots[$(this).data('index')];
-            if (plot) {
-                updateCurrentContent(plot.content, plot.rawMessage);
-                $('#tamako-market-window .tamako-tab[data-tab="current"]').click();
-            }
-        });
-    }
-    
-    updateCaptureCount();
-}
-
-function filterPlots(plots, query) {
-    if (!query) return plots;
-    const lowerQuery = query.toLowerCase();
-    return plots.filter(p => {
-        return p.content.toLowerCase().includes(lowerQuery) || 
-               extractAMCodes(p.content).join(' ').toLowerCase().includes(lowerQuery);
-    });
+    renderHistoryList();
 }
 
 export function updateCaptureCount() {
-    const capturedPlots = getCapturedPlots();
-    $('#tamako-count').text(capturedPlots.length);
-    $('#tamako-history-count').text(capturedPlots.length);
+    syncCaptureCount();
 }
 
 // ===== 位置重置 =====

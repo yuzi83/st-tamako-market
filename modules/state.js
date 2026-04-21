@@ -93,16 +93,10 @@ export let validateDebounceTimer = null;
 export let beautifierLoadTimeout = null;
 
 // ===== 事件追踪 =====
-
+ 
 /** @type {MutationObserver|null} */
 export let mutationObserver = null;
-
-/** @type {Array<{target: EventTarget, type: string, handler: Function, options?: any}>} */
-export let registeredEventListeners = [];
-
-/** @type {Array<{eventSource: any, type: string, handler: Function}>} */
-export let registeredEventSourceListeners = [];
-
+ 
 /** @type {EventListenerManager|null} 事件监听器管理器 */
 export let eventListenerManager = null;
 
@@ -273,69 +267,6 @@ export function setMutationObserver(observer) {
 }
 
 /**
- * 添加 DOM 事件监听器到清理列表
- * @param {EventTarget} target
- * @param {string} type
- * @param {Function} handler
- * @param {Object} [options]
- * @deprecated 使用 EventListenerManager 替代
- */
-export function addEventListenerCleanup(target, type, handler, options) {
-    registeredEventListeners.push({ target, type, handler, options });
-}
-
-/**
- * 清除所有 DOM 事件监听器
- * @deprecated 使用 EventListenerManager 替代
- */
-export function clearAllEventListeners() {
-    registeredEventListeners.forEach(({ target, type, handler, options }) => {
-        try {
-            target.removeEventListener(type, handler, options);
-        } catch (e) {
-            // 忽略错误
-        }
-    });
-    registeredEventListeners = [];
-}
-
-/**
- * 添加 EventSource 监听器到清理列表
- * @param {any} eventSource
- * @param {string} type
- * @param {Function} handler
- * @deprecated 使用 EventListenerManager 替代
- */
-export function addEventSourceListenerCleanup(eventSource, type, handler) {
-    registeredEventSourceListeners.push({ eventSource, type, handler });
-}
-
-/**
- * 清除所有 EventSource 监听器
- * @deprecated 使用 EventListenerManager 替代
- */
-export function clearAllEventSourceListeners() {
-    registeredEventSourceListeners.forEach(({ eventSource, type, handler }) => {
-        try {
-            if (typeof eventSource?.off === 'function') {
-                eventSource.off(type, handler);
-                return;
-            }
-            if (typeof eventSource?.removeListener === 'function') {
-                eventSource.removeListener(type, handler);
-                return;
-            }
-            if (typeof eventSource?.removeEventListener === 'function') {
-                eventSource.removeEventListener(type, handler);
-            }
-        } catch (e) {
-            // 忽略错误
-        }
-    });
-    registeredEventSourceListeners = [];
-}
-
-/**
  * 断开 MutationObserver
  */
 export function disconnectObserver() {
@@ -354,20 +285,16 @@ export function disconnectObserver() {
  * 包括：事件监听器、MutationObserver、定时器等
  */
 export function cleanupAllResources() {
-    // 1. 使用新的事件管理器清理
+    // 1. 使用统一事件管理器清理
     if (eventListenerManager) {
         eventListenerManager.clearAll();
         eventListenerManager = null;
     }
 
-    // 2. 清理旧的监听器列表（向后兼容）
-    clearAllEventListeners();
-    clearAllEventSourceListeners();
-
-    // 3. 断开 MutationObserver
+    // 2. 断开 MutationObserver
     disconnectObserver();
 
-    // 4. 清理定时器
+    // 3. 清理定时器
     if (validateDebounceTimer) {
         clearTimeout(validateDebounceTimer);
         validateDebounceTimer = null;

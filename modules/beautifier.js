@@ -10,8 +10,12 @@ import {
     getCachedTemplateId
 } from './state.js';
 import { getDeraMessage, getActiveTemplate } from './utils.js';
+import { buildChatDataSignature } from './beautifier-cache.js';
 
 export { clearCache as clearTemplateCache };
+
+let cachedChatData = null;
+let cachedChatDataSignature = '';
 
 // ===== 模板解析 =====
 
@@ -107,6 +111,11 @@ export function extractAllChatData() {
         const context = SillyTavern.getContext();
         if (!context?.chat) return data;
 
+        const signature = buildChatDataSignature(context.chat);
+        if (cachedChatData && cachedChatDataSignature === signature) {
+            return cachedChatData;
+        }
+
         data.chat = context.chat.map((msg) => {
             if (!msg) return null;
             return {
@@ -127,6 +136,9 @@ export function extractAllChatData() {
             data.tags[tag] = extractTagFromChatHistory(context.chat, tag);
         }
         data.tags.contentFile = extractFileFromContentTag(context.chat);
+
+        cachedChatData = data;
+        cachedChatDataSignature = signature;
     } catch (e) {
         console.error('[玉子市场] 提取聊天数据失败:', e);
     }

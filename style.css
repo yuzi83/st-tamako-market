@@ -52,7 +52,7 @@
     background: var(--tamako-bg);
     border: 2px solid var(--tamako-primary);
     border-radius: var(--tamako-radius);
-    box-shadow: 0 8px 32px rgba(255, 182, 193, 0.4);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4), 0 0 30px rgba(147, 112, 219, 0.1);
     z-index: 9990;
     display: none;
     flex-direction: column;
@@ -80,22 +80,21 @@ body.tamako-resizing * {
 
 /* ===== 统一滚动条样式 ===== */
 .tamako-window ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
 }
 
 .tamako-window ::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.05);
-    border-radius: 4px;
+    background: transparent;
 }
 
 .tamako-window ::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, var(--tamako-primary), var(--tamako-secondary));
-    border-radius: 4px;
+    background: rgba(147, 112, 219, 0.3);
+    border-radius: 3px;
 }
 
 .tamako-window ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, var(--tamako-secondary), var(--tamako-primary));
+    background: rgba(147, 112, 219, 0.5);
 }
 
 /* ===== 调整大小手柄 ===== */
@@ -132,6 +131,7 @@ body.tamako-resizing * {
     user-select: none;
     flex-shrink: 0;
     touch-action: none;
+    backdrop-filter: blur(10px);
 }
 
 .tamako-drag-handle { flex: 1; cursor: move; }
@@ -147,6 +147,25 @@ body.tamako-resizing * {
     pointer-events: none;
 }
 
+.tamako-title-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.9;
+}
+
+.tamako-title-icon svg {
+    width: 20px;
+    height: 20px;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+}
+
+.tamako-title-animated {
+    color: var(--tamako-text, #E0E0E0);
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
 .tamako-controls { display: flex; gap: 4px; flex-shrink: 0; }
 
 .tamako-btn {
@@ -157,15 +176,17 @@ body.tamako-resizing * {
     font-size: 13px;
     padding: 5px 7px;
     border-radius: 8px;
-    transition: all 0.2s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     align-items: center;
     justify-content: center;
+    backdrop-filter: blur(4px);
 }
 
-.tamako-btn svg { width: 14px; height: 14px; fill: currentColor; }
-.tamako-btn:hover { background: rgba(255, 255, 255, 0.5); }
-.tamako-btn:active { transform: scale(0.95); }
+.tamako-btn svg { width: 14px; height: 14px; fill: currentColor; transition: transform 0.2s ease; }
+.tamako-btn:hover { background: rgba(147, 112, 219, 0.3); transform: translateY(-1px); }
+.tamako-btn:hover svg { transform: scale(1.1); }
+.tamako-btn:active { transform: translateY(0) scale(0.95); }
 .tamako-btn.close:hover { background: #FF6B6B; }
 .tamako-btn.delete-mode.active { background: #FF6B6B; }
 .tamako-btn:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -174,18 +195,29 @@ body.tamako-resizing * {
 .tamako-theme-panel {
     padding: 8px 12px;
     background: var(--tamako-surface-alt);
-    border-bottom: 2px solid var(--tamako-primary);
+    border-bottom: 1px solid var(--tamako-border);
 }
 
 .tamako-theme-panel select {
     width: 100%;
     padding: 8px 10px;
-    border: 2px solid var(--tamako-primary);
+    border: 1px solid var(--tamako-border);
     border-radius: 8px;
     background: var(--tamako-surface);
     color: var(--tamako-text);
     font-size: 13px;
     cursor: pointer;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.tamako-theme-panel select:hover {
+    border-color: var(--tamako-primary);
+}
+
+.tamako-theme-panel select:focus {
+    border-color: var(--tamako-primary);
+    box-shadow: 0 0 0 2px rgba(147, 112, 219, 0.2);
     outline: none;
 }
 
@@ -215,12 +247,31 @@ body.tamako-resizing * {
     gap: 6px;
 }
 
-.tamako-tab svg { width: 16px; height: 16px; }
-.tamako-tab:hover { color: var(--tamako-primary); background: rgba(255, 255, 255, 0.5); }
+.tamako-tab svg {
+    width: 16px;
+    height: 16px;
+    opacity: 0.7;
+    transition: all 0.2s ease;
+}
+
+.tamako-tab:hover {
+    color: var(--tamako-primary);
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.tamako-tab:hover svg {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
 .tamako-tab.active {
     color: var(--tamako-primary);
     border-bottom-color: var(--tamako-primary);
     background: var(--tamako-surface);
+}
+
+.tamako-tab.active svg {
+    opacity: 1;
 }
 
 /* ===== 德拉提示 ===== */
@@ -235,12 +286,13 @@ body.tamako-resizing * {
     border-radius: 20px;
     font-size: 13px;
     font-weight: 600;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 15px rgba(147, 112, 219, 0.4);
     opacity: 0;
     pointer-events: none;
     transition: all 0.3s ease;
     z-index: 100;
     white-space: nowrap;
+    backdrop-filter: blur(10px);
 }
 
 .tamako-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -336,7 +388,20 @@ body.tamako-resizing * {
     padding: 20px;
 }
 
-.tamako-empty .icon { font-size: 36px; margin-bottom: 10px; }
+.tamako-empty .icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 10px;
+    font-size: 36px;
+}
+
+.tamako-empty .icon svg {
+    width: 100%;
+    height: 100%;
+}
 
 /* 库存标签页内容 */
 .tamako-content[data-content="history"] {
@@ -356,7 +421,16 @@ body.tamako-resizing * {
     margin-bottom: 12px;
 }
 
-.tamako-search svg { width: 14px; height: 14px; opacity: 0.5; }
+.tamako-search svg {
+    width: 14px;
+    height: 14px;
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+}
+
+.tamako-search:focus-within svg {
+    opacity: 0.8;
+}
 
 .tamako-search input {
     flex: 1;
@@ -396,11 +470,11 @@ body.tamako-resizing * {
     padding: 10px 12px;
     margin-bottom: 10px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .tamako-history-item:last-child { margin-bottom: 0; }
-.tamako-history-item:hover { border-color: var(--tamako-primary); transform: translateX(3px); }
+.tamako-history-item:hover { border-color: var(--tamako-primary); transform: translateX(4px); box-shadow: -4px 0 0 var(--tamako-primary); }
 .tamako-history-item.delete-mode { cursor: default; padding-left: 36px; }
 .tamako-history-item.delete-mode:hover { transform: none; }
 
@@ -472,6 +546,13 @@ body.tamako-resizing * {
     display: flex;
     align-items: center;
     gap: 4px;
+    box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+    transition: all 0.2s ease;
+}
+
+.tamako-delete-confirm:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
 }
 
 .tamako-delete-confirm svg { width: 14px; height: 14px; }
@@ -515,8 +596,8 @@ body.tamako-resizing * {
     gap: 6px;
     font-size: 14px;
     font-weight: 600;
-    transition: transform 0.2s, box-shadow 0.2s;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: box-shadow 0.3s ease, transform 0.2s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2), 0 0 20px rgba(147, 112, 219, 0.15);
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
     user-select: none;
     touch-action: none;
@@ -532,15 +613,54 @@ body.tamako-resizing * {
     /* 通过 JS 动态设置 */
 }
 
-.tamako-toggle:hover { transform: scale(1.05); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2); }
+.tamako-toggle:hover:not(.dragging) {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25), 0 0 30px rgba(147, 112, 219, 0.25);
+}
+
+.tamako-toggle:active:not(.dragging) {
+    transform: scale(0.98);
+}
+
 .tamako-toggle:active,
 .tamako-toggle.dragging { cursor: grabbing; }
 .tamako-toggle.active { filter: brightness(1.1); }
 .tamako-toggle.has-new { animation: tamako-bounce 0.5s ease infinite alternate; }
 
+.tamako-toggle.dragging,
+.tamako-toggle.dragging * {
+    transition: none !important;
+}
+
 .tamako-toggle-icon { pointer-events: none; display: flex; align-items: center; }
 .tamako-toggle-icon svg { width: 18px; height: 18px; }
-.tamako-toggle-text { pointer-events: none; }
+.tamako-toggle .tamako-toggle-text {
+    pointer-events: none;
+    color: #FFFFFF;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.tamako-toggle.tamako-toggle-circle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tamako-toggle.tamako-toggle-has-image .tamako-toggle-icon,
+.tamako-toggle.tamako-toggle-has-image .tamako-toggle-text {
+    display: none !important;
+}
+
+.tamako-toggle.tamako-toggle-circle .tamako-toggle-icon {
+    display: none;
+}
+
+.tamako-toggle.tamako-toggle-circle .tamako-toggle-text {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 
 @keyframes tamako-bounce {
     from { transform: translateY(0); }
@@ -631,12 +751,17 @@ body.tamako-resizing * {
 }
 
 .tamako-section-title {
-    font-size: 12px;
-    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
     color: var(--tamako-text-muted);
-    margin-bottom: 10px;
+    font-size: 11px;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--tamako-border);
 }
 
 .tamako-editor-select {
@@ -1457,239 +1582,4 @@ body.tamako-eyedropper-mode * {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     cursor: default;
 }
-
-/* ===== 切换按钮变体 ===== */
-
-.tamako-toggle.tamako-toggle-circle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.tamako-toggle.tamako-toggle-has-image .tamako-toggle-icon,
-.tamako-toggle.tamako-toggle-has-image .tamako-toggle-text {
-    display: none !important;
-}
-
-.tamako-toggle.tamako-toggle-circle .tamako-toggle-icon {
-    display: none;
-}
-
-.tamako-toggle.tamako-toggle-circle .tamako-toggle-text {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-/* ===== 标题文字样式（无动画） ===== */
-.tamako-title-animated {
-    color: var(--tamako-text, #E0E0E0);
-    font-weight: 700;
-    letter-spacing: 1px;
-}
-
-/* ===== 按钮文字样式（无动画） ===== */
-.tamako-toggle .tamako-toggle-text {
-    color: #FFFFFF;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-}
-
-/* ===== 拖拽时禁用过渡 ===== */
-.tamako-toggle.dragging,
-.tamako-toggle.dragging * {
-    transition: none !important;
-}
-
-/* ===== 切换按钮基础样式 ===== */
-.tamako-toggle {
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2), 0 0 20px rgba(147, 112, 219, 0.15);
-    transition: box-shadow 0.3s ease, transform 0.2s ease;
-}
-
-.tamako-toggle:hover:not(.dragging) {
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25), 0 0 30px rgba(147, 112, 219, 0.25);
-    transform: scale(1.05);
-}
-
-.tamako-toggle:active:not(.dragging) {
-    transform: scale(0.98);
-}
-
-/* ===== 按钮样式 ===== */
-.tamako-btn {
-    backdrop-filter: blur(4px);
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.tamako-btn:hover {
-    background: rgba(147, 112, 219, 0.3);
-    transform: translateY(-1px);
-}
-
-.tamako-btn:active {
-    transform: translateY(0) scale(0.95);
-}
-
-.tamako-btn:hover svg {
-    transform: scale(1.1);
-}
-
-.tamako-btn svg {
-    transition: transform 0.2s ease;
-}
-
-/* ===== 标题图标 ===== */
-.tamako-title-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0.9;
-}
-
-.tamako-title-icon svg {
-    width: 20px;
-    height: 20px;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
-}
-
-/* ===== 选项卡 ===== */
-.tamako-tab svg {
-    opacity: 0.7;
-    transition: all 0.2s ease;
-}
-
-.tamako-tab:hover svg {
-    opacity: 1;
-    transform: scale(1.1);
-}
-
-.tamako-tab.active svg {
-    opacity: 1;
-}
-
-/* ===== 搜索 ===== */
-.tamako-search svg {
-    opacity: 0.5;
-    transition: opacity 0.2s ease;
-}
-
-.tamako-search:focus-within svg {
-    opacity: 0.8;
-}
-
-/* ===== 主题面板 ===== */
-.tamako-theme-panel {
-    background: var(--tamako-surface-alt);
-    border-bottom: 1px solid var(--tamako-border);
-}
-
-.tamako-theme-panel select {
-    background: var(--tamako-surface);
-    border: 1px solid var(--tamako-border);
-    color: var(--tamako-text);
-    transition: all 0.2s ease;
-}
-
-.tamako-theme-panel select:hover {
-    border-color: var(--tamako-primary);
-}
-
-.tamako-theme-panel select:focus {
-    border-color: var(--tamako-primary);
-    box-shadow: 0 0 0 2px rgba(147, 112, 219, 0.2);
-    outline: none;
-}
-
-/* ===== 编辑器标题 ===== */
-.tamako-section-title {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--tamako-text-muted);
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 12px;
-    padding-bottom: 6px;
-    border-bottom: 1px solid var(--tamako-border);
-}
-
-/* ===== 删除按钮 ===== */
-.tamako-delete-confirm {
-    background: linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%);
-    border: none;
-    box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
-    transition: all 0.2s ease;
-}
-
-.tamako-delete-confirm:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
-}
-
-/* ===== 空状态 ===== */
-.tamako-empty .icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 48px;
-    height: 48px;
-    margin-bottom: 10px;
-}
-
-.tamako-empty .icon svg {
-    width: 100%;
-    height: 100%;
-}
-
-/* ===== 历史记录 ===== */
-.tamako-history-item {
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.tamako-history-item:hover {
-    border-color: var(--tamako-primary);
-    transform: translateX(4px);
-    box-shadow: -4px 0 0 var(--tamako-primary);
-}
-
-/* ===== 滚动条 ===== */
-.tamako-window ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-
-.tamako-window ::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.tamako-window ::-webkit-scrollbar-thumb {
-    background: rgba(147, 112, 219, 0.3);
-    border-radius: 3px;
-}
-
-.tamako-window ::-webkit-scrollbar-thumb:hover {
-    background: rgba(147, 112, 219, 0.5);
-}
-
-/* ===== 窗口 ===== */
-.tamako-window {
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4), 0 0 30px rgba(147, 112, 219, 0.1);
-}
-
-/* ===== 头部 ===== */
-.tamako-header {
-    background: linear-gradient(135deg, rgba(147, 112, 219, 0.9) 0%, rgba(106, 90, 205, 0.9) 100%);
-    backdrop-filter: blur(10px);
-}
-
-/* ===== Toast ===== */
-.tamako-toast {
-    background: linear-gradient(135deg, var(--tamako-primary) 0%, var(--tamako-secondary) 100%);
-    backdrop-filter: blur(10px);
-    box-shadow: 0 4px 15px rgba(147, 112, 219, 0.4);
-}
-
-
 
